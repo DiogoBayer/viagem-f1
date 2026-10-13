@@ -234,12 +234,13 @@ img{max-width:100%}
       <p class="sub">Curitiba → São Paulo de HB20S, 6 a 8 de novembro.</p>
       <div class="crew" aria-label="Viajantes"><span>Diogo</span><span>Antonio</span><span>João Vitor</span><span>Augusto</span></div>
     </div>
-    <div class="countdown" aria-live="polite">
+    <div class="countdown">
       <div class="label" id="cd-label">Faltam para a chegada em SP</div>
       <div class="digits" id="cd">
         <div class="cell"><b id="cd-d">--</b><small>dias</small></div>
         <div class="cell"><b id="cd-h">--</b><small>horas</small></div>
         <div class="cell"><b id="cd-m">--</b><small>min</small></div>
+        <div class="cell"><b id="cd-s">--</b><small>seg</small></div>
       </div>
     </div>
   </header>
@@ -563,14 +564,16 @@ function tick(){
     document.getElementById("cd-d").textContent = "0";
     document.getElementById("cd-h").textContent = "0";
     document.getElementById("cd-m").textContent = "0";
+    document.getElementById("cd-s").textContent = "0";
     return;
   }
-  const m = Math.floor(ms/60000);
+  const s = Math.floor(ms/1000), m = Math.floor(s/60);
   document.getElementById("cd-d").textContent = Math.floor(m/1440);
   document.getElementById("cd-h").textContent = String(Math.floor((m%1440)/60)).padStart(2,"0");
   document.getElementById("cd-m").textContent = String(m%60).padStart(2,"0");
+  document.getElementById("cd-s").textContent = String(s%60).padStart(2,"0");
 }
-tick(); setInterval(tick, 30000);
+tick(); setInterval(tick, 1000);
 
 /* ---------- Custos (Firestore) ---------- */
 let gastos = [];
