@@ -173,6 +173,7 @@ section{padding-block:40px 8px;scroll-margin-top:64px}
 .payer.unset{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
 .del{border:0;background:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:2px 4px;text-decoration:underline;text-underline-offset:2px}
 .del.confirm{color:var(--accent);font-weight:600}
+.expenses li.editando{background:var(--warn-soft)}
 .empty{padding:28px 18px;color:var(--muted);text-align:center}
 
 form.add{display:grid;gap:12px}
@@ -338,7 +339,7 @@ img{max-width:100%}
         </div>
 
         <div class="panel">
-          <div class="panel-head"><h3>Novo gasto</h3></div>
+          <div class="panel-head"><h3 id="f-titulo">Novo gasto</h3></div>
           <div class="panel-body">
             <form class="add" id="add-form" novalidate>
               <div class="field">
@@ -367,6 +368,7 @@ img{max-width:100%}
                 <div class="who" id="f-who"></div>
               </fieldset>
               <button class="btn" id="f-submit" type="submit">Adicionar gasto</button>
+              <button class="btn sec" id="f-cancel" type="button" hidden>Cancelar edição</button>
               <p class="msg" id="f-msg" role="status"></p>
             </form>
           </div>
@@ -648,6 +650,7 @@ let gastosCol = null;      // coleção viagens/interlagos-2026/gastos
 let pararEscuta = null;
 let conectado = false;
 let pendingDelete = null;
+let editando = null;       // id do gasto aberto no formulário para edição
 
 const app = initializeApp(firebaseConfig);
 const fs = getFirestore(app);
@@ -748,7 +751,7 @@ function renderCustos(){
             `</div>`;
         }
       }
-      return `<li data-id="${esc(g.id)}">
+      return `<li data-id="${esc(g.id)}"${editando===g.id?' class="editando"':''}>
         <div class="desc">
           <strong>${esc(g.descricao)}</strong>
           <div class="meta">
@@ -761,6 +764,7 @@ function renderCustos(){
         <div class="val">
           <b>${brl(Number(g.valor)||0)}</b>
           <small>${brl(each)} cada</small>
+          <button class="del" data-act="edit" type="button">${editando===g.id?"Editando…":"Editar"}</button>
           <button class="del ${isPend?"confirm":""}" data-act="del" type="button">${isPend?"Confirmar exclusão":"Excluir"}</button>
         </div>
       </li>`;
@@ -839,19 +843,56 @@ document.getElementById("add-form").addEventListener("submit", async ev => {
   if (!(valor > 0)){ setMsg("Informe um valor maior que zero, como 120,50.", "err"); return; }
   if (valor > 10000000){ setMsg("Valor acima do limite de R$ 100.000,00.", "err"); return; }
   if (!divididoEntre.length){ setMsg("Marque pelo menos uma pessoa para dividir.", "err"); return; }
+  const categoria = document.getElementById("f-cat").value, pagoPor = fPayer.value;
   const btn = document.getElementById("f-submit");
   btn.disabled = true;
   try {
-    await addDoc(gastosCol, {
-      descricao, valor, categoria: document.getElementById("f-cat").value,
-      pagoPor: fPayer.value, divididoEntre, criadoEm: new Date().toISOString()
-    });
-    ev.target.reset();
-    document.querySelectorAll("#f-who input").forEach(i => i.checked = true);
-    setMsg("Gasto adicionado.", "okm");
+    if (editando){
+      const g = gastos.find(x => x.id === editando);
+      if (!g){ sairEdicao(); setMsg("Esse gasto foi apagado por outra pessoa.", "err"); return; }
+      // Trocar o pagador zera quem já pagou; senão, mantém só quem continua na divisão.
+      const quitados = pagoPor !== g.pagoPor ? [] : (Array.isArray(g.quitados) ? g.quitados : []).filter(p => divididoEntre.includes(p) && p !== pagoPor);
+      await updateDoc(doc(gastosCol, editando), {descricao, valor, categoria, pagoPor, divididoEntre, quitados});
+      sairEdicao();
+      setMsg("Gasto alterado.", "okm");
+    } else {
+      await addDoc(gastosCol, {descricao, valor, categoria, pagoPor, divididoEntre, criadoEm: new Date().toISOString()});
+      ev.target.reset();
+      setMsg("Gasto adicionado.", "okm");
+    }
   } catch(e){ setMsg(erroTexto(e), "err"); }
   finally { btn.disabled = !conectado; }
 });
+
+/* ----- edição de um gasto, no mesmo formulário ----- */
+function iniciarEdicao(id){
+  const g = gastos.find(x => x.id === id);
+  if (!g) return;
+  editando = id;
+  document.getElementById("f-desc").value = g.descricao || "";
+  document.getElementById("f-valor").value = ((Number(g.valor) || 0)/100).toFixed(2).replace(".", ",");
+  const cat = document.getElementById("f-cat");
+  cat.value = g.categoria; if (cat.selectedIndex < 0) cat.value = "Outros";
+  fPayer.value = PESSOAS.includes(g.pagoPor) ? g.pagoPor : "";
+  const e = entreDe(g);
+  document.querySelectorAll("#f-who input").forEach(i => i.checked = e.includes(i.value));
+  document.getElementById("f-titulo").textContent = "Editar gasto";
+  document.getElementById("f-submit").textContent = "Salvar alterações";
+  document.getElementById("f-cancel").hidden = false;
+  setMsg("", "");
+  renderCustos();
+  document.getElementById("add-form").scrollIntoView({behavior:"smooth", block:"center"});
+  document.getElementById("f-desc").focus({preventScroll:true});
+}
+function sairEdicao(){
+  editando = null;
+  document.getElementById("add-form").reset();
+  document.getElementById("f-titulo").textContent = "Novo gasto";
+  document.getElementById("f-submit").textContent = "Adicionar gasto";
+  document.getElementById("f-cancel").hidden = true;
+  renderCustos();
+}
+document.getElementById("f-cancel").addEventListener("click", () => { sairEdicao(); setMsg("", ""); });
 
 const ul = document.getElementById("expenses");
 ul.addEventListener("change", async ev => {
@@ -885,11 +926,14 @@ ul.addEventListener("click", async ev => {
     catch(e){ setMsg(erroTexto(e), "err"); renderCustos(); }
     return;
   }
+  const ed = ev.target.closest('[data-act="edit"]');
+  if (ed){ iniciarEdicao(ed.closest("li").dataset.id); return; }
   const b = ev.target.closest('[data-act="del"]');
   if (!b || !gastosCol) return;
   const id = b.closest("li").dataset.id;
   if (pendingDelete !== id){ pendingDelete = id; renderCustos(); return; }
   pendingDelete = null;
+  if (editando === id) sairEdicao();
   try { await deleteDoc(doc(gastosCol, id)); }
   catch(e){ setMsg(erroTexto(e), "err"); renderCustos(); }
 });

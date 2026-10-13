@@ -97,6 +97,7 @@ As regras em `firestore.rules` validam esses campos e só liberam esse caminho. 
 - Gastos sem pagador entram no total e no custo por pessoa, mas ficam fora do acerto.
 - O acerto sugere o mínimo de transferências (algoritmo guloso). O centavo de arredondamento vai para o maior saldo, para as contas fecharem.
 - Trocar o pagador de um gasto zera os `quitados` dele.
+- Editar um gasto: o botão "Editar" carrega o gasto no formulário de "Novo gasto" (que vira "Editar gasto") e salva com `updateDoc`, sem mudar o `criadoEm`. Se o pagador mudar, zera os `quitados`; se só a divisão mudar, mantém quem continua nela. Não exigiu mudança nas regras.
 
 ### Mapa
 
@@ -163,5 +164,6 @@ O site depende do Firebase, então abrir o `index.html` direto no navegador não
 10. Seletor de pessoa removido, só o celular do Diogo compartilha (`v5-so-meu-celular`); segundos na contagem (`v6-contagem-segundos`).
 11. Roteiro no mapa: paradas de cada dia (`v7-roteiro-no-mapa`), Casa do Vídeo Game e Barbacoa (`v8-locais-sexta`).
 12. Ícone da tela inicial (`v9-icone`, desenhado; `v10-icone-foto`, trocado pela foto que o Diogo escolheu). O ícone atual é um recorte quadrado de `public/verstappen.jpg` (420x420 a partir de x=140, y=0), reduzido para 180x180 com System.Drawing no PowerShell. O iPhone guarda o ícone no momento de adicionar à tela inicial; para trocar, é preciso remover o atalho e adicionar de novo.
+13. Edição de gastos (`v11-editar-gasto`).
 
 Também existe um doc "Planejamento de Viagem" no Claude, do começo da conversa. Ele está desatualizado em relação ao site e não é usado.

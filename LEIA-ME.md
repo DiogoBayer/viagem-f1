@@ -40,6 +40,9 @@ Para trocar o nome do link: no painel do Netlify, abra o site → **Site configu
 ## Para mudar algo depois
 Troque só o `public/index.html` (o `config.js` fica como está) e arraste a pasta `public` de novo no Netlify, na aba **Deploys** do site. Os gastos não são afetados, porque ficam no Firebase.
 
+## Editar um gasto
+Toque em **Editar** no gasto. Os dados dele aparecem no formulário, que passa a se chamar "Editar gasto". Mude o que precisar e toque em **Salvar alterações**, ou em **Cancelar edição** para desistir. Se você trocar quem pagou, as marcações de "já pagaram" daquele gasto são apagadas.
+
 ## Marcar quem já pagou
 Em cada gasto com pagador definido aparece a linha "Já pagaram ...", com um botão por pessoa da divisão. Quem acertou sua parte toca no próprio nome. O botão fica verde e o acerto de contas lá embaixo já desconta. Tocar de novo desmarca. Trocar o pagador de um gasto apaga as marcações dele.
 
