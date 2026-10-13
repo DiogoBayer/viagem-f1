@@ -64,7 +64,8 @@ viagem-f1/             repositório Git (GitHub: DiogoBayer/viagem-f1)
 ├── firebase.json      só se um dia publicar pela CLI do Firebase; hoje não é usado
 └── public/
     ├── index.html     o site inteiro (HTML, CSS e JS num arquivo só)
-    └── config.js      configuração do Firebase do Diogo
+    ├── config.js      configuração do Firebase do Diogo
+    └── apple-touch-icon.png   ícone 180x180 da tela inicial do celular e da aba do navegador
 ```
 
 - **Hospedagem:** Netlify, publicando a pasta `public` por arrastar e soltar em Deploys. Não há build. O Netlify guarda todos os deploys, e voltar uma versão é "Publish deploy" num deploy antigo.
@@ -160,6 +161,7 @@ O site depende do Firebase, então abrir o `index.html` direto no navegador não
 8. Mapa, etapa 2: posição ao vivo compartilhada e trilha (`v3-mapa-ao-vivo`). Exige as regras novas no Firebase.
 9. Mapa, etapa 3: local, velocidade, km até o destino e clima (`v4-mapa-dados`).
 10. Seletor de pessoa removido, só o celular do Diogo compartilha (`v5-so-meu-celular`); segundos na contagem (`v6-contagem-segundos`).
-11. Roteiro no mapa: paradas de cada dia (`v7-roteiro-no-mapa`).
+11. Roteiro no mapa: paradas de cada dia (`v7-roteiro-no-mapa`), Casa do Vídeo Game e Barbacoa (`v8-locais-sexta`).
+12. Ícone da tela inicial (`v9-icone`). Foi desenhado em HTML, fotografado com o Edge sem janela em 512x512 e reduzido para 180x180. O iPhone guarda o ícone no momento de adicionar à tela inicial; para trocar, é preciso remover o atalho e adicionar de novo.
 
 Também existe um doc "Planejamento de Viagem" no Claude, do começo da conversa. Ele está desatualizado em relação ao site e não é usado.

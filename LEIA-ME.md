@@ -8,6 +8,7 @@ O site fica hospedado no Netlify e os gastos ficam no Firestore, do Firebase. Tu
 | --- | --- |
 | `public/index.html` | O site (roteiro, carro, custos e acerto) |
 | `public/config.js` | A configuração do seu Firebase. Cole uma vez e não mexa mais |
+| `public/apple-touch-icon.png` | O ícone que aparece ao adicionar o site à tela inicial do celular |
 | `firestore.rules` | Regras do banco, para colar no console do Firebase |
 | `firebase.json` | Só é usado se um dia publicar pela ferramenta do Firebase. Pode ignorar |
 
