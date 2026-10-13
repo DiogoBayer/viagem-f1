@@ -87,9 +87,20 @@ section{padding-block:40px 8px;scroll-margin-top:64px}
 .map-tip{background:rgba(16,19,22,.9);color:#ECEFF2;border:1px solid #2D343C;border-radius:3px;box-shadow:none;font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:.8rem;padding:2px 7px}
 .map-tip::before{display:none}
 .map-erro{margin:0;padding:48px 18px;color:#9AA3AD;text-align:center}
-.map-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
-.map-foot .note{margin:0}
+.map-hud .vivo{color:#5FD08F;font-weight:600}
+.carro{box-sizing:border-box;width:20px;height:20px;border-radius:50%;background:#8A96A3;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45)}
+.carro.vivo{background:#2FD27A;animation:pulso 1.6s ease-out infinite}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(47,210,122,.65)}100%{box-shadow:0 0 0 18px rgba(47,210,122,0)}}
+@media (prefers-reduced-motion:reduce){.carro.vivo{animation:none}}
+.live{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px 18px;margin-top:12px;display:grid;gap:10px}
+.live-status{margin:0;font-weight:600}
+.live-status.vivo{color:var(--ok)}
+.live-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.live-acoes select{padding:6px 8px;font-size:.92rem}
+.live .msg:empty{display:none}
 .btn.sm{padding:7px 12px;font-size:.85rem}
+.btn.sec{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn.parar{background:var(--accent);color:#fff}
 
 /* Roteiro */
 .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:16px}
@@ -250,12 +261,22 @@ img{max-width:100%}
         <div class="label">Agora</div>
         <strong id="fase-nome">—</strong>
         <span id="fase-detalhe"></span>
+        <span id="live-hud" hidden></span>
       </div>
     </div>
-    <div class="map-foot">
-      <p class="note">No celular, use dois dedos para aproximar o mapa. A volta no domingo às 17:00 é uma previsão.</p>
-      <button class="btn sm" id="map-reset" type="button">Ver rota inteira</button>
+    <div class="live">
+      <p class="live-status" id="live-status" role="status">Carregando a posição…</p>
+      <div class="live-acoes">
+        <label class="label" for="live-quem">Celular de</label>
+        <select class="payer" id="live-quem"></select>
+        <button class="btn sm" id="live-btn" type="button" disabled>Compartilhar posição</button>
+        <button class="btn sm sec" id="live-centro" type="button" hidden>Ver o carro</button>
+        <button class="btn sm sec" id="map-reset" type="button">Ver rota inteira</button>
+      </div>
+      <p class="msg err" id="live-msg" role="alert"></p>
     </div>
+    <p class="note">Para compartilhar, deixe o site aberto e a tela ligada no celular que está no carro. Quem tem o link do site vê a posição. No celular, use dois dedos para aproximar o mapa. A volta no domingo às 17:00 é uma previsão.
+      <button class="del" id="live-apagar" type="button" hidden>Apagar posição e trilha</button></p>
   </section>
 
   <section id="roteiro">
@@ -447,12 +468,14 @@ img{max-width:100%}
   enquadrar();
   reset.addEventListener("click", enquadrar);
   window.addEventListener("resize", () => map.invalidateSize());
+  // Ponte para o script do Firebase desenhar o carro e a trilha neste mapa.
+  window.mapaViagem = {map, enquadrar};
 })();
 </script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 // A configuração do Firebase fica no arquivo config.js, ao lado deste.
 import { firebaseConfig } from "./config.js";
 
@@ -795,13 +818,184 @@ ul.addEventListener("click", async ev => {
   catch(e){ setMsg(erroTexto(e), "err"); renderCustos(); }
 });
 
+/* ---------- Posição ao vivo (Firestore) ---------- */
+// Um celular envia a posição para viagens/interlagos-2026/aovivo/posicao e todos que abrem o site veem.
+// A trilha percorrida fica em aovivo/trilha, um ponto ("lat,lng") a cada 500 m.
+const ENVIO_MS = 10000;      // intervalo mínimo entre envios
+const VIVO_MS = 90000;       // sem envio há mais que isso, deixa de ser "ao vivo"
+const TRILHA_M = 500;
+const mv = window.mapaViagem || null;
+const posRef = doc(fs, "viagens", "interlagos-2026", "aovivo", "posicao");
+const trilhaRef = doc(fs, "viagens", "interlagos-2026", "aovivo", "trilha");
+const liveStatus = document.getElementById("live-status");
+const liveHud = document.getElementById("live-hud");
+const liveBtn = document.getElementById("live-btn");
+const liveQuem = document.getElementById("live-quem");
+const liveCentro = document.getElementById("live-centro");
+const liveApagar = document.getElementById("live-apagar");
+const liveMsg = document.getElementById("live-msg");
+
+let pos = null, trilha = [], aoVivoOk = false;
+let marcador = null, trilhaLinha = null, seguir = false;
+let watchId = null, wake = null, ultimoFix = null, ultimoEnvio = 0, ultimoTrilha = null, batida = null;
+let apagarPendente = false;
+
+liveQuem.innerHTML = PESSOAS.map(p => `<option>${esc(p)}</option>`).join("");
+try { const q = localStorage.getItem("interlagos-quem"); if (PESSOAS.includes(q)) liveQuem.value = q; } catch(e){}
+liveQuem.addEventListener("change", () => { try { localStorage.setItem("interlagos-quem", liveQuem.value); } catch(e){} });
+
+function distM(a, b){
+  const r = Math.PI/180, dLat = (b[0]-a[0])*r, dLng = (b[1]-a[1])*r;
+  const h = Math.sin(dLat/2)**2 + Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLng/2)**2;
+  return 2*6371000*Math.asin(Math.sqrt(h));
+}
+function haQuanto(ms){
+  const m = Math.floor(ms/60000);
+  if (m < 1) return "há menos de 1 min";
+  if (m < 60) return "há " + m + " min";
+  if (m < 2880) return "há " + Math.floor(m/60) + " h";
+  return "há " + Math.floor(m/1440) + " dias";
+}
+
+function renderAoVivo(){
+  const compartilhando = watchId !== null;
+  liveBtn.disabled = !aoVivoOk;
+  liveBtn.textContent = compartilhando ? "Parar de compartilhar" : "Compartilhar posição";
+  liveBtn.classList.toggle("parar", compartilhando);
+  liveQuem.disabled = compartilhando;
+  liveCentro.hidden = !pos || !mv;
+  liveApagar.hidden = !pos && !trilha.length;
+  liveApagar.textContent = apagarPendente ? "Confirmar: apagar posição e trilha" : "Apagar posição e trilha";
+  liveApagar.classList.toggle("confirm", apagarPendente);
+  if (!aoVivoOk) return;
+
+  const idade = pos ? Date.now() - Date.parse(pos.em) : Infinity;
+  const vivo = idade < VIVO_MS;
+  const vel = pos && pos.vel >= 0 ? " · " + pos.vel + " km/h" : "";
+  if (!pos){
+    liveStatus.textContent = compartilhando ? "Procurando o sinal de GPS…" : "Ninguém compartilhou a posição ainda.";
+    liveHud.hidden = true;
+  } else if (vivo){
+    liveStatus.textContent = "Ao vivo pelo celular de " + pos.por + vel;
+    liveHud.hidden = false; liveHud.textContent = "● Ao vivo" + vel;
+  } else {
+    liveStatus.textContent = "Última posição " + haQuanto(idade) + ", pelo celular de " + pos.por + ".";
+    liveHud.hidden = false; liveHud.textContent = "Última posição " + haQuanto(idade);
+  }
+  liveStatus.classList.toggle("vivo", vivo);
+  liveHud.classList.toggle("vivo", vivo);
+
+  if (!mv) return;
+  if (trilha.length > 1){
+    if (!trilhaLinha) trilhaLinha = L.polyline(trilha, {color:"#2FD27A", weight:4, interactive:false}).addTo(mv.map);
+    else trilhaLinha.setLatLngs(trilha);
+  } else if (trilhaLinha){ trilhaLinha.remove(); trilhaLinha = null; }
+  if (pos){
+    const icone = L.divIcon({className:"", html:`<div class="carro${vivo?" vivo":""}"></div>`, iconSize:[20,20], iconAnchor:[10,10]});
+    if (!marcador) marcador = L.marker([pos.lat, pos.lng], {icon:icone, interactive:false, zIndexOffset:1000}).addTo(mv.map);
+    else { marcador.setLatLng([pos.lat, pos.lng]); marcador.setIcon(icone); }
+    if (seguir) mv.map.panTo([pos.lat, pos.lng]);
+  } else if (marcador){ marcador.remove(); marcador = null; }
+}
+
+function enviar(){
+  if (!ultimoFix) return;
+  const agora = Date.now();
+  ultimoEnvio = agora;
+  const {lat, lng, precisao, vel} = ultimoFix;
+  setDoc(posRef, {lat, lng, precisao, vel, por: liveQuem.value, em: new Date(agora).toISOString()})
+    .then(() => { liveMsg.textContent = ""; })
+    .catch(e => { liveMsg.textContent = erroTexto(e); });
+  const pt = [lat, lng];
+  // Ponto impreciso não entra na trilha, para ela não ficar rabiscada.
+  if (precisao <= 100 && (!ultimoTrilha || distM(ultimoTrilha, pt) >= TRILHA_M)){
+    ultimoTrilha = pt;
+    setDoc(trilhaRef, {pontos: arrayUnion(lat.toFixed(4) + "," + lng.toFixed(4))}, {merge:true}).catch(() => {});
+  }
+}
+function aoReceber(p){
+  const c = p.coords;
+  ultimoFix = {
+    lat: Number(c.latitude.toFixed(5)), lng: Number(c.longitude.toFixed(5)),
+    precisao: Math.round(c.accuracy || 0),
+    vel: typeof c.speed === "number" && c.speed >= 0 ? Math.round(c.speed*3.6) : -1
+  };
+  if (Date.now() - ultimoEnvio >= ENVIO_MS) enviar();
+}
+function aoFalhar(e){
+  if (e.code === 1){
+    parar();
+    liveMsg.textContent = "A localização está bloqueada para este site. Libere nas configurações do navegador e tente de novo.";
+  } else liveMsg.textContent = "Sem sinal de GPS agora. Continuo tentando.";
+}
+async function pedirTela(){
+  try { if ("wakeLock" in navigator) wake = await navigator.wakeLock.request("screen"); } catch(e){}
+}
+function iniciar(){
+  if (!("geolocation" in navigator)){ liveMsg.textContent = "Este navegador não informa a localização."; return; }
+  liveMsg.textContent = "";
+  ultimoFix = null; ultimoEnvio = 0;
+  ultimoTrilha = trilha.length ? trilha[trilha.length-1] : null;
+  watchId = navigator.geolocation.watchPosition(aoReceber, aoFalhar, {enableHighAccuracy:true, maximumAge:5000, timeout:30000});
+  // Parado, o GPS não manda posição nova; reenvia a última para continuar "ao vivo".
+  batida = setInterval(() => { if (Date.now() - ultimoEnvio >= 30000) enviar(); }, 10000);
+  pedirTela();
+  renderAoVivo();
+}
+function parar(){
+  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  watchId = null;
+  clearInterval(batida); batida = null;
+  if (wake){ wake.release().catch(() => {}); wake = null; }
+  renderAoVivo();
+}
+// O navegador solta a trava de tela quando a aba some; pede de novo ao voltar.
+document.addEventListener("visibilitychange", () => { if (watchId !== null && document.visibilityState === "visible") pedirTela(); });
+
+liveBtn.addEventListener("click", () => { watchId === null ? iniciar() : parar(); });
+liveCentro.addEventListener("click", () => {
+  if (!pos || !mv) return;
+  seguir = true;
+  mv.map.setView([pos.lat, pos.lng], Math.max(mv.map.getZoom(), 12));
+});
+document.getElementById("map-reset").addEventListener("click", () => { seguir = false; });
+if (mv) mv.map.on("dragstart", () => { seguir = false; });
+liveApagar.addEventListener("click", async () => {
+  if (!apagarPendente){ apagarPendente = true; renderAoVivo(); return; }
+  apagarPendente = false;
+  parar();
+  try { await deleteDoc(posRef); await deleteDoc(trilhaRef); ultimoTrilha = null; }
+  catch(e){ liveMsg.textContent = erroTexto(e); }
+  renderAoVivo();
+});
+
+function conectarAoVivo(){
+  const falha = err => {
+    aoVivoOk = false;
+    liveStatus.classList.remove("vivo");
+    liveStatus.textContent = err.code === "permission-denied"
+      ? "A posição ao vivo ainda não foi liberada no banco. Publique as regras novas do Firestore."
+      : "Não foi possível carregar a posição agora. Recarregue a página.";
+    renderAoVivo();
+  };
+  onSnapshot(posRef, s => { aoVivoOk = true; pos = s.exists() ? s.data() : null; renderAoVivo(); }, falha);
+  onSnapshot(trilhaRef, s => {
+    const pts = s.exists() && Array.isArray(s.data().pontos) ? s.data().pontos : [];
+    trilha = pts.map(t => String(t).split(",").map(Number)).filter(p => p.length === 2 && p.every(isFinite));
+    renderAoVivo();
+  }, falha);
+  setInterval(renderAoVivo, 15000);   // atualiza o "há X min"
+}
+
 /* ----- início ----- */
 renderCustos();
 if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("COLE")){
   notice.hidden = false;
   notice.textContent = "Falta colar a configuração do Firebase no arquivo config.js.";
+  liveStatus.textContent = "A posição ao vivo depende da configuração do Firebase.";
 } else {
   conectar();
+  conectarAoVivo();
 }
 </script>
 </body>

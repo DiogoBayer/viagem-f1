@@ -3,6 +3,8 @@ rules_version = '2';
 // Regras do Interlagos 2026.
 // Os gastos ficam em viagens/interlagos-2026/gastos.
 // Qualquer pessoa com o link do site pode ler, lançar, editar e apagar gastos.
+// A posição ao vivo fica em viagens/interlagos-2026/aovivo (documentos "posicao" e "trilha").
+// Qualquer pessoa com o link do site pode ler, gravar e apagar a posição.
 // As regras só barram dados malformados e qualquer outro lugar do banco.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -22,6 +24,29 @@ service cloud.firestore {
     match /viagens/{viagem}/gastos/{gastoId} {
       allow read, delete: if viagem == 'interlagos-2026';
       allow create, update: if viagem == 'interlagos-2026' && gastoValido(request.resource.data);
+    }
+
+    function posicaoValida(d) {
+      return d.keys().hasOnly(['lat', 'lng', 'precisao', 'vel', 'por', 'em'])
+        && d.keys().hasAll(['lat', 'lng', 'precisao', 'vel', 'por', 'em'])
+        && d.lat is number && d.lat >= -90 && d.lat <= 90
+        && d.lng is number && d.lng >= -180 && d.lng <= 180
+        && d.precisao is number && d.precisao >= 0
+        && d.vel is number && d.vel >= -1 && d.vel <= 400
+        && d.por in ['Diogo', 'Antonio', 'João Vitor', 'Augusto']
+        && d.em is string && d.em.size() <= 40;
+    }
+
+    function trilhaValida(d) {
+      return d.keys().hasOnly(['pontos'])
+        && d.pontos is list && d.pontos.size() <= 4000;
+    }
+
+    match /viagens/{viagem}/aovivo/{docId} {
+      allow read, delete: if viagem == 'interlagos-2026' && docId in ['posicao', 'trilha'];
+      allow create, update: if viagem == 'interlagos-2026'
+        && ((docId == 'posicao' && posicaoValida(request.resource.data))
+          || (docId == 'trilha' && trilhaValida(request.resource.data)));
     }
   }
 }

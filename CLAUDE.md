@@ -1,6 +1,6 @@
 # Interlagos 2026 — contexto do projeto
 
-Site da viagem de Curitiba ao GP de São Paulo de Fórmula 1 (6 a 8/11/2026). Mostra roteiro, carro e estrada, gastos compartilhados com divisão e acerto de contas, quem já pagou cada gasto e um mapa com a rota e a fase da viagem. A posição ao vivo no mapa ainda não foi feita (ver "Mapa").
+Site da viagem de Curitiba ao GP de São Paulo de Fórmula 1 (6 a 8/11/2026). Mostra roteiro, carro e estrada, gastos compartilhados com divisão e acerto de contas, quem já pagou cada gasto e um mapa com a rota e a fase da viagem. Um celular pode compartilhar a posição ao vivo para todos verem no mapa (ver "Mapa").
 
 - **No ar:** https://viagem-f1.netlify.app
 - **Dono:** Diogo. Escreva sempre em português do Brasil.
@@ -107,11 +107,19 @@ Seção "Onde estamos", a primeira da página. O código fica num `<script>` pr�
 - Fases só pelo relógio (`faseAtual`): Antes → Ida (05/11 20:00) → Em São Paulo (06/11 08:00) → Volta (08/11 17:00, suposto) → Fim (09/11 03:00).
 - No celular, arrastar com um dedo fica desligado para não prender a rolagem da página; dois dedos aproximam.
 
-**A fazer, inspirado no RatoNet (github.com/Captando/RatoNet):**
+**Feito (etapa 2), inspirado no RatoNet (github.com/Captando/RatoNet):**
 
-- Etapa 2: botão "Compartilhar posição". Um celular envia a posição ao Firestore (`watchPosition` + Wake Lock para a tela não apagar) e todos veem o ponto e a trilha percorrida. Exige campo/caminho novo nas regras.
-- Etapa 3: velocidade, cidade atual (Nominatim), clima (Open-Meteo) e fila de pontos para quando faltar sinal.
-- Limites já explicados ao Diogo: só funciona com o site aberto e a tela ligada, e, sem login, quem tem o link vê (e poderia gravar) a posição.
+- Botão "Compartilhar posição": o celular escolhido envia a posição com `watchPosition`, no máximo a cada 10 s (parado, reenvia a cada 30 s), e pede Wake Lock para a tela não apagar.
+- Dados em `viagens/interlagos-2026/aovivo`: documento `posicao` (`lat`, `lng`, `precisao` em metros, `vel` em km/h ou -1, `por`, `em`) e documento `trilha` (`pontos`: lista de textos `"lat,lng"`, um a cada 500 m, até 4.000).
+- Todos veem o ponto verde, a trilha verde e a velocidade. Sem envio há mais de 90 s, vira "Última posição há X" e o ponto fica cinza.
+- "Ver o carro" centraliza e segue o ponto; arrastar o mapa ou "Ver rota inteira" para de seguir. "Apagar posição e trilha" limpa os dois documentos.
+- A ponte entre os dois scripts é `window.mapaViagem` (`map`, `enquadrar`).
+- Só foi testado com Firestore e GPS simulados. Falta o teste real: regras publicadas, site no Netlify e um celular de verdade.
+
+**A fazer:**
+
+- Etapa 3: cidade atual (Nominatim), clima (Open-Meteo), km rodados na rota e fila de pontos para quando faltar sinal.
+- Limites já explicados ao Diogo: só funciona com o site aberto e a tela ligada, e, sem login, quem tem o link vê (e poderia gravar) a posição. Testar em casa grava o endereço de casa no banco; apagar depois.
 
 ## Como publicar uma mudança
 
@@ -132,6 +140,7 @@ O site depende do Firebase, então abrir o `index.html` direto no navegador não
 4. Hospedagem no Netlify por arrastar e soltar, sem instalar Node nem a CLI do Firebase.
 5. Botões de "quem já pagou" em cada gasto, com `config.js` separado.
 6. Repositório Git com a versão sem mapa marcada como `v1-site-no-ar` (ponto de retorno).
-7. Mapa "Onde estamos", etapa 1: rota real e fases da viagem, sem posição ao vivo.
+7. Mapa "Onde estamos", etapa 1: rota real e fases da viagem, sem posição ao vivo (`v2-mapa-rota`).
+8. Mapa, etapa 2: posição ao vivo compartilhada e trilha (`v3-mapa-ao-vivo`). Exige as regras novas no Firebase.
 
 Também existe um doc "Planejamento de Viagem" no Claude, do começo da conversa. Ele está desatualizado em relação ao site e não é usado.

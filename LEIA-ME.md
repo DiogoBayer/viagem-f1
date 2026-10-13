@@ -42,6 +42,16 @@ Troque só o `public/index.html` (o `config.js` fica como está) e arraste a pas
 ## Marcar quem já pagou
 Em cada gasto com pagador definido aparece a linha "Já pagaram ...", com um botão por pessoa da divisão. Quem acertou sua parte toca no próprio nome. O botão fica verde e o acerto de contas lá embaixo já desconta. Tocar de novo desmarca. Trocar o pagador de um gasto apaga as marcações dele.
 
+## Mapa e posição ao vivo
+A seção "Onde estamos" mostra a rota e a fase da viagem. Para o grupo ver onde o carro está:
+
+1. No celular que vai no carro, abra o site, escolha o nome em **Celular de** e toque em **Compartilhar posição**. Aceite o pedido de localização.
+2. Deixe o site aberto, com a tela ligada e o celular carregando. Se a tela apagar ou o site fechar, o envio para.
+3. Quem abrir o site vê o ponto verde e a trilha. **Ver o carro** aproxima e acompanha o ponto.
+4. Para encerrar, toque em **Parar de compartilhar**. **Apagar posição e trilha** limpa tudo do banco.
+
+Na primeira vez, é preciso colar de novo as regras (passo 2), porque a posição usa um lugar novo no banco.
+
 ## Se der problema
 
 | Sintoma | Causa provável |
@@ -50,6 +60,9 @@ Em cada gasto com pagador definido aparece a linha "Já pagaram ...", com um bot
 | Página sem a parte de gastos | O `config.js` perdeu a palavra `export` |
 | "O banco recusou o acesso" | As regras do passo 2 não foram publicadas |
 | Fica em "Carregando gastos…" | O banco do passo 1 não foi criado |
+| "A posição ao vivo ainda não foi liberada no banco" | As regras novas do passo 2 não foram publicadas |
+| "A localização está bloqueada para este site" | Libere a localização para o site nas configurações do navegador do celular |
+| O ponto parou e mostra "Última posição há X" | A tela do celular apagou, o site foi fechado ou acabou o sinal |
 
 ## Segurança
-Quem tem o link pode lançar, editar e apagar qualquer gasto. Passe o link só para o grupo. As regras impedem que alguém grave dados malformados ou use outras partes do banco.
+Quem tem o link pode lançar, editar e apagar qualquer gasto, e também ver, gravar e apagar a posição ao vivo. Passe o link só para o grupo. As regras impedem que alguém grave dados malformados ou use outras partes do banco.
