@@ -1,6 +1,6 @@
 # Interlagos 2026 — contexto do projeto
 
-Site da viagem de Curitiba ao GP de São Paulo de Fórmula 1 (6 a 8/11/2026). Mostra roteiro, carro e estrada, gastos compartilhados com divisão e acerto de contas, quem já pagou cada gasto e um mapa com a fase da viagem e a posição do celular.
+Site da viagem de Curitiba ao GP de São Paulo de Fórmula 1 (6 a 8/11/2026). Mostra roteiro, carro e estrada, gastos compartilhados com divisão e acerto de contas, quem já pagou cada gasto e um mapa com a rota e a fase da viagem. A posição ao vivo no mapa ainda não foi feita (ver "Mapa").
 
 - **No ar:** https://viagem-f1.netlify.app
 - **Dono:** Diogo. Escreva sempre em português do Brasil.
@@ -56,8 +56,9 @@ Site da viagem de Curitiba ao GP de São Paulo de Fórmula 1 (6 a 8/11/2026). Mo
 ## Arquitetura
 
 ```
-interlagos-firebase/
+viagem-f1/             repositório Git (GitHub: DiogoBayer/viagem-f1)
 ├── CLAUDE.md          este arquivo
+├── .gitignore         deixa o public/config.js fora do Git
 ├── LEIA-ME.md         passo a passo de publicação, para o Diogo
 ├── firestore.rules    regras do banco (colar no console do Firebase)
 ├── firebase.json      só se um dia publicar pela CLI do Firebase; hoje não é usado
@@ -69,8 +70,8 @@ interlagos-firebase/
 - **Hospedagem:** Netlify, publicando a pasta `public` por arrastar e soltar em Deploys. Não há build. O Netlify guarda todos os deploys, e voltar uma versão é "Publish deploy" num deploy antigo.
 - **Banco:** Firestore (plano gratuito Spark), região southamerica-east1.
 - **Sem login e sem código de acesso.** Decisão do Diogo: quem tem o link lê, lança, edita e apaga gastos. As regras só validam o formato dos dados e restringem o caminho.
-- **Bibliotecas:** Firebase JS SDK 10.12.2 (módulos ES do gstatic), Leaflet 1.9.4 (unpkg), mapas CARTO (light_all/dark_all). Fontes Google: Saira Condensed, Barlow, JetBrains Mono.
-- **`config.js`** exporta `firebaseConfig` (`export const firebaseConfig = {...}`). Ele é separado para que atualizações troquem só o `index.html`. No repositório ele fica com `COLE_AQUI`; a cópia real com os valores está só no computador do Diogo e no Netlify. **Nunca sobrescreva o `config.js` dele.** A `apiKey` do Firebase não é segredo, mas não há motivo para versioná-la.
+- **Bibliotecas:** Firebase JS SDK 10.12.2 (módulos ES do gstatic), Leaflet 1.9.4 (unpkg), mapa escuro da Esri (World_Dark_Gray_Base + Reference, sem chave). Os mapas da CARTO passaram a exigir chave de API e não servem mais. Fontes Google: Saira Condensed, Barlow, JetBrains Mono.
+- **`config.js`** exporta `firebaseConfig` (`export const firebaseConfig = {...}`). Ele é separado para que atualizações troquem só o `index.html`. Ele está no `.gitignore`: a cópia real com os valores fica só no computador do Diogo e no Netlify, e não vai para o GitHub. **Nunca sobrescreva o `config.js` dele.** A `apiKey` do Firebase não é segredo, mas não há motivo para versioná-la.
 
 ### Dados (Firestore)
 
@@ -98,9 +99,19 @@ As regras em `firestore.rules` validam esses campos e só liberam esse caminho. 
 
 ### Mapa
 
-- Rota aproximada por ~26 pontos da BR-116 (Régis Bittencourt), do Aeroporto Afonso Pena até Interlagos. O traçado mede ~356 km, então as distâncias exibidas são escaladas para os 405 km reais (`KM_ESTRADA`).
-- Fases: Antes → Ida (05/11 20:00) → Em São Paulo (06/11 08:00) → Volta (08/11 17:00, suposto) → Concluída (09/11 03:00). Com a posição ligada, o site corrige: dentro de 30 km do centro de SP conta como "Em São Paulo"; na volta, dentro de 15 km do aeroporto de Curitiba conta como "Concluída".
-- A posição usa `watchPosition`, só com o site aberto, e **não é enviada ao banco**.
+Seção "Onde estamos", a primeira da página. O código fica num `<script>` próprio, separado do script do Firebase, para um não derrubar o outro.
+
+**Feito (etapa 1):**
+
+- Rota real da estrada em 323 pontos (`ROTA`), do Aeroporto Afonso Pena até Interlagos, tirada do OSRM/OpenStreetMap. O traçado simplificado mede ~392 km; o OSRM dá 398,6 km e o Qualp, 405 km.
+- Fases só pelo relógio (`faseAtual`): Antes → Ida (05/11 20:00) → Em São Paulo (06/11 08:00) → Volta (08/11 17:00, suposto) → Fim (09/11 03:00).
+- No celular, arrastar com um dedo fica desligado para não prender a rolagem da página; dois dedos aproximam.
+
+**A fazer, inspirado no RatoNet (github.com/Captando/RatoNet):**
+
+- Etapa 2: botão "Compartilhar posição". Um celular envia a posição ao Firestore (`watchPosition` + Wake Lock para a tela não apagar) e todos veem o ponto e a trilha percorrida. Exige campo/caminho novo nas regras.
+- Etapa 3: velocidade, cidade atual (Nominatim), clima (Open-Meteo) e fila de pontos para quando faltar sinal.
+- Limites já explicados ao Diogo: só funciona com o site aberto e a tela ligada, e, sem login, quem tem o link vê (e poderia gravar) a posição.
 
 ## Como publicar uma mudança
 
@@ -111,7 +122,7 @@ As regras em `firestore.rules` validam esses campos e só liberam esse caminho. 
 
 ## Como testar sem publicar
 
-O site depende do Firebase, então abrir o `index.html` direto no navegador não carrega os gastos. Para conferir layout e lógica, já usamos Playwright com o Firebase simulado (respostas falsas para `firebase-app.js` e `firebase-firestore.js`), geolocalização falsa e relógio fixo. Para mudanças só de lógica, extraia as funções (`calc`, `projetar`, `faseAtual`) e rode no Node com dados de exemplo.
+O site depende do Firebase, então abrir o `index.html` direto no navegador não carrega os gastos nem o roteiro (o mapa carrega). Para conferir o layout, dá para tirar fotos com o Edge sem janela: `msedge --headless=new --allow-file-access-from-files --window-size=1200,1100 --virtual-time-budget=15000 --screenshot=foto.png file:///.../public/index.html`. Para largura de celular, abra o site dentro de um `<iframe>` de 390px, porque o Edge não aceita janela tão estreita. O computador do Diogo não tem Node, e a rede dele bloqueia alguns endereços no terminal (Netlify, OSRM).
 
 ## Histórico do que foi feito
 
@@ -120,7 +131,7 @@ O site depende do Firebase, então abrir o `index.html` direto no navegador não
 3. Migração para Firebase: primeiro com código de grupo, depois **sem código**, por decisão do Diogo.
 4. Hospedagem no Netlify por arrastar e soltar, sem instalar Node nem a CLI do Firebase.
 5. Botões de "quem já pagou" em cada gasto, com `config.js` separado.
-6. Mapa "Onde estamos", com fases da viagem e posição do celular.
-7. Repositório Git iniciado; versão atual marcada como `v1-mapa`.
+6. Repositório Git com a versão sem mapa marcada como `v1-site-no-ar` (ponto de retorno).
+7. Mapa "Onde estamos", etapa 1: rota real e fases da viagem, sem posição ao vivo.
 
 Também existe um doc "Planejamento de Viagem" no Claude, do começo da conversa. Ele está desatualizado em relação ao site e não é usado.

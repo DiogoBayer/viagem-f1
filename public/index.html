@@ -8,8 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-/* Layout: pit-wall board. Kerb-striped header with countdown, then three stacked sections (roteiro, custos, estrada) in one centered column. */
+/* Layout: pit-wall board. Kerb-striped header with countdown, then four stacked sections (mapa, roteiro, custos, estrada) in one centered column. */
 :root{
   --bg:#ECEEF1;
   --surface:#FFFFFF;
@@ -67,6 +68,28 @@ section{padding-block:40px 8px;scroll-margin-top:64px}
 .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
 .sec-head h2{font-size:2rem;font-weight:800;text-transform:uppercase}
 .sec-head p{margin:0;color:var(--muted)}
+
+/* Mapa */
+.fases{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.fases li{border:1px solid var(--line);background:var(--surface);border-radius:3px;padding:8px 10px;min-width:0}
+.fases b{display:block;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1.05rem;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fases small{display:block;font-family:var(--mono);font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fases li.feita{opacity:.55}
+.fases li[aria-current="step"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.fases li[aria-current="step"] small{color:#fff;opacity:.85}
+@media (max-width:560px){.fases li{padding:7px 6px}.fases b{font-size:.9rem}.fases small{display:none}}
+.mapbox{position:relative;isolation:isolate;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#101316}
+#map{height:clamp(320px,62vh,540px);background:#101316;font-family:var(--body)}
+.map-hud{position:absolute;left:12px;top:12px;z-index:500;max-width:calc(100% - 24px);background:rgba(16,19,22,.88);color:#ECEFF2;border:1px solid #2D343C;border-radius:4px;padding:10px 12px;pointer-events:none}
+.map-hud .label{color:#9AA3AD}
+.map-hud strong{display:block;font-family:var(--display);font-weight:800;font-size:1.45rem;text-transform:uppercase;line-height:1.1;margin-top:2px}
+.map-hud span{display:block;font-size:.88rem;color:#C9CFD6;margin-top:2px}
+.map-tip{background:rgba(16,19,22,.9);color:#ECEFF2;border:1px solid #2D343C;border-radius:3px;box-shadow:none;font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:.8rem;padding:2px 7px}
+.map-tip::before{display:none}
+.map-erro{margin:0;padding:48px 18px;color:#9AA3AD;text-align:center}
+.map-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.map-foot .note{margin:0}
+.btn.sm{padding:7px 12px;font-size:.85rem}
 
 /* Roteiro */
 .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:16px}
@@ -209,10 +232,31 @@ img{max-width:100%}
   </header>
 
   <nav class="jump" aria-label="Seções">
+    <a href="#mapa">Onde estamos</a>
     <a href="#roteiro">Roteiro</a>
     <a href="#custos">Custos e divisão</a>
     <a href="#estrada">Carro e estrada</a>
   </nav>
+
+  <section id="mapa">
+    <div class="sec-head">
+      <h2>Onde estamos</h2>
+      <p>Curitiba → Interlagos pela BR-116, 405 km por trecho.</p>
+    </div>
+    <ol class="fases" id="fases" aria-label="Fases da viagem"></ol>
+    <div class="mapbox">
+      <div id="map" role="img" aria-label="Mapa da rota de Curitiba a Interlagos"></div>
+      <div class="map-hud" aria-live="polite">
+        <div class="label">Agora</div>
+        <strong id="fase-nome">—</strong>
+        <span id="fase-detalhe"></span>
+      </div>
+    </div>
+    <div class="map-foot">
+      <p class="note">No celular, use dois dedos para aproximar o mapa. A volta no domingo às 17:00 é uma previsão.</p>
+      <button class="btn sm" id="map-reset" type="button">Ver rota inteira</button>
+    </div>
+  </section>
 
   <section id="roteiro">
     <div class="sec-head">
@@ -321,6 +365,90 @@ img{max-width:100%}
 
   <footer>Horário oficial da largada: domingo, 8 de novembro, às 14:00 (Brasília). Os gastos ficam salvos no Firebase e aparecem para todos que abrem este link.</footer>
 </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ---------- Mapa "Onde estamos" ---------- */
+// Fica separado do script do Firebase: se o banco falhar, o mapa continua funcionando, e vice-versa.
+(function(){
+  // Traçado da estrada (OpenStreetMap/OSRM), do Aeroporto de Curitiba até Interlagos: [lat, lng]
+  const ROTA = [[-25.53317,-49.17581],[-25.53273,-49.17796],[-25.54137,-49.18366],[-25.54779,-49.17279],[-25.54045,-49.16547],[-25.54076,-49.15327],[-25.53489,-49.15216],[-25.53986,-49.14861],[-25.5368,-49.14896],[-25.48488,-49.10834],[-25.4733,-49.09351],[-25.45767,-49.0877],[-25.44451,-49.09208],[-25.43779,-49.0913],[-25.42398,-49.07471],[-25.40564,-49.06032],[-25.38269,-49.05245],[-25.36315,-49.04121],[-25.34492,-49.04371],[-25.31248,-49.01635],[-25.31091,-49.00297],[-25.30619,-48.99559],[-25.30803,-48.98082],[-25.30279,-48.96368],[-25.30531,-48.94848],[-25.30238,-48.94158],[-25.26749,-48.91716],[-25.25081,-48.9097],[-25.24477,-48.90253],[-25.23303,-48.90788],[-25.21669,-48.90357],[-25.21125,-48.89716],[-25.19848,-48.89436],[-25.19074,-48.88441],[-25.18517,-48.88467],[-25.18392,-48.87949],[-25.1772,-48.87779],[-25.17474,-48.86873],[-25.16413,-48.86185],[-25.14052,-48.85591],[-25.12646,-48.85711],[-25.11602,-48.85331],[-25.11521,-48.84736],[-25.10972,-48.84375],[-25.10756,-48.82178],[-25.10859,-48.81732],[-25.11215,-48.81495],[-25.1106,-48.80725],[-25.11253,-48.80403],[-25.10764,-48.7885],[-25.11143,-48.78277],[-25.11152,-48.76515],[-25.11396,-48.76003],[-25.10075,-48.73085],[-25.1054,-48.71631],[-25.09871,-48.68737],[-25.10005,-48.67655],[-25.09734,-48.67164],[-25.09765,-48.65668],[-25.08557,-48.64237],[-25.0811,-48.62339],[-25.08277,-48.6124],[-25.08669,-48.6096],[-25.08778,-48.60495],[-25.0765,-48.59398],[-25.0739,-48.58692],[-25.06792,-48.58273],[-25.06435,-48.56571],[-25.06022,-48.56228],[-25.05798,-48.55583],[-25.03993,-48.53718],[-25.03092,-48.53265],[-25.02863,-48.52642],[-25.0248,-48.52408],[-25.02449,-48.5179],[-25.01985,-48.5153],[-25.01847,-48.51055],[-25.01034,-48.5076],[-24.99885,-48.50891],[-24.98178,-48.50433],[-24.97704,-48.50451],[-24.97583,-48.50275],[-24.97651,-48.4973],[-24.96991,-48.48787],[-24.96635,-48.47564],[-24.96712,-48.46662],[-24.96532,-48.46378],[-24.96841,-48.45541],[-24.96661,-48.45016],[-24.96887,-48.44404],[-24.96542,-48.43249],[-24.96289,-48.42911],[-24.96442,-48.42548],[-24.96089,-48.41747],[-24.96203,-48.41406],[-24.9729,-48.4025],[-24.9724,-48.39975],[-24.96909,-48.39538],[-24.96765,-48.38866],[-24.972,-48.37147],[-24.96969,-48.36529],[-24.9695,-48.36095],[-24.97206,-48.35085],[-24.95522,-48.33178],[-24.951,-48.31587],[-24.94452,-48.3113],[-24.94144,-48.30745],[-24.9306,-48.27559],[-24.92377,-48.26226],[-24.91344,-48.25344],[-24.89714,-48.24329],[-24.89181,-48.23241],[-24.88644,-48.22543],[-24.88044,-48.2222],[-24.87977,-48.2195],[-24.88125,-48.21118],[-24.87997,-48.20929],[-24.86734,-48.21064],[-24.8629,-48.21456],[-24.85936,-48.21097],[-24.85671,-48.21249],[-24.85357,-48.20995],[-24.8501,-48.20979],[-24.84786,-48.21437],[-24.84427,-48.21141],[-24.84181,-48.21342],[-24.83817,-48.2129],[-24.83283,-48.21483],[-24.82955,-48.20904],[-24.82279,-48.20916],[-24.81889,-48.21154],[-24.81418,-48.2085],[-24.80789,-48.21316],[-24.80209,-48.21089],[-24.79863,-48.21114],[-24.79666,-48.20851],[-24.79154,-48.20707],[-24.78767,-48.20362],[-24.78065,-48.2038],[-24.7789,-48.19741],[-24.78019,-48.19383],[-24.78818,-48.18348],[-24.78737,-48.1774],[-24.78211,-48.17205],[-24.76981,-48.17013],[-24.76432,-48.16605],[-24.75861,-48.16405],[-24.75476,-48.16092],[-24.74965,-48.15134],[-24.74601,-48.14752],[-24.743,-48.14004],[-24.74322,-48.13343],[-24.74141,-48.12653],[-24.73037,-48.10769],[-24.73072,-48.09755],[-24.72349,-48.08547],[-24.72158,-48.0799],[-24.72256,-48.04439],[-24.71734,-48.03676],[-24.70977,-48.01896],[-24.69413,-47.99717],[-24.67993,-47.98232],[-24.66787,-47.97668],[-24.65551,-47.96386],[-24.64735,-47.92194],[-24.60958,-47.88184],[-24.60287,-47.87648],[-24.59763,-47.87624],[-24.58303,-47.88427],[-24.57632,-47.88387],[-24.56939,-47.87892],[-24.56187,-47.86768],[-24.50302,-47.84713],[-24.49308,-47.83716],[-24.45324,-47.81115],[-24.42338,-47.77853],[-24.41853,-47.76521],[-24.39795,-47.73016],[-24.3886,-47.7216],[-24.38654,-47.71594],[-24.38099,-47.7144],[-24.37211,-47.70592],[-24.368,-47.69474],[-24.35734,-47.685],[-24.35454,-47.67368],[-24.3559,-47.66345],[-24.34865,-47.65119],[-24.33271,-47.63935],[-24.32973,-47.61939],[-24.33494,-47.59313],[-24.3294,-47.57896],[-24.32115,-47.53536],[-24.31703,-47.52827],[-24.31009,-47.50892],[-24.30602,-47.49219],[-24.30242,-47.4861],[-24.29361,-47.47744],[-24.2878,-47.45762],[-24.28462,-47.43777],[-24.28062,-47.42966],[-24.27952,-47.42265],[-24.26287,-47.37961],[-24.26047,-47.37728],[-24.25289,-47.37421],[-24.24044,-47.36238],[-24.23503,-47.36038],[-24.23049,-47.36066],[-24.22604,-47.36417],[-24.21941,-47.36554],[-24.20811,-47.37176],[-24.20159,-47.37108],[-24.19354,-47.36037],[-24.18699,-47.35975],[-24.18454,-47.35817],[-24.18081,-47.35184],[-24.16209,-47.32878],[-24.15511,-47.32468],[-24.15248,-47.32155],[-24.14722,-47.30247],[-24.14648,-47.29428],[-24.1434,-47.28675],[-24.1454,-47.27545],[-24.14397,-47.27247],[-24.13852,-47.27328],[-24.13185,-47.27126],[-24.12728,-47.27205],[-24.12323,-47.27107],[-24.11929,-47.26578],[-24.11631,-47.26947],[-24.11385,-47.26983],[-24.11163,-47.26511],[-24.10958,-47.26906],[-24.10766,-47.26406],[-24.10333,-47.26175],[-24.10286,-47.25703],[-24.09841,-47.25421],[-24.08899,-47.25691],[-24.08196,-47.2517],[-24.07486,-47.25],[-24.06885,-47.24399],[-24.06182,-47.22872],[-24.05855,-47.22574],[-24.05709,-47.22063],[-24.05434,-47.21788],[-24.05371,-47.21418],[-24.05085,-47.20983],[-24.05149,-47.20122],[-24.04672,-47.19715],[-24.0451,-47.19362],[-24.03832,-47.1922],[-24.02761,-47.17422],[-24.02099,-47.17183],[-24.01122,-47.16562],[-24.00876,-47.16033],[-24.00354,-47.15742],[-24.00253,-47.15273],[-24.00091,-47.15101],[-23.9942,-47.14754],[-23.98703,-47.14841],[-23.97625,-47.14342],[-23.96653,-47.13064],[-23.95429,-47.10659],[-23.94277,-47.09485],[-23.93659,-47.08059],[-23.93535,-47.07405],[-23.94025,-47.05976],[-23.94029,-47.0426],[-23.93513,-47.03292],[-23.9341,-47.0133],[-23.92924,-46.99595],[-23.91526,-46.98908],[-23.90414,-46.9915],[-23.89213,-46.98349],[-23.87362,-46.96498],[-23.86526,-46.94948],[-23.85542,-46.94021],[-23.84543,-46.93695],[-23.84213,-46.93179],[-23.82609,-46.92573],[-23.80724,-46.92404],[-23.79765,-46.91463],[-23.77732,-46.91545],[-23.75837,-46.9028],[-23.72331,-46.89172],[-23.7192,-46.8831],[-23.72437,-46.88138],[-23.72711,-46.86854],[-23.72395,-46.86582],[-23.7201,-46.85736],[-23.71989,-46.85494],[-23.72152,-46.8519],[-23.71872,-46.85117],[-23.71857,-46.84526],[-23.7132,-46.8398],[-23.70798,-46.83083],[-23.70238,-46.82728],[-23.69575,-46.82511],[-23.69014,-46.81667],[-23.68827,-46.80707],[-23.68524,-46.80037],[-23.68696,-46.79924],[-23.68569,-46.79103],[-23.68283,-46.78917],[-23.68125,-46.78575],[-23.68186,-46.78369],[-23.68018,-46.78268],[-23.67839,-46.77669],[-23.67594,-46.77425],[-23.68085,-46.76936],[-23.68363,-46.76949],[-23.6777,-46.76179],[-23.67718,-46.7584],[-23.67554,-46.75651],[-23.6762,-46.74969],[-23.67366,-46.74809],[-23.66741,-46.72836],[-23.66599,-46.71231],[-23.67093,-46.7128],[-23.67148,-46.71053],[-23.68593,-46.70248],[-23.69881,-46.70085],[-23.70099,-46.70202],[-23.70165,-46.70091]];
+
+  const T = s => new Date(s).getTime();
+  const SAIDA = T("2026-11-05T20:00:00-03:00");
+  const CHEGADA = T("2026-11-06T08:00:00-03:00");
+  const VOLTA = T("2026-11-08T17:00:00-03:00");   // previsão, ainda não confirmada pelo grupo
+  const FIM = T("2026-11-09T03:00:00-03:00");
+  const FASES = [
+    {n:"Antes", t:"Antes da viagem", d:"até 05/11"},
+    {n:"Ida", t:"Na estrada para São Paulo", d:"qui 20:00"},
+    {n:"Em SP", t:"Em São Paulo", d:"sex 08:00"},
+    {n:"Volta", t:"Na estrada para Curitiba", d:"dom 17:00"},
+    {n:"Fim", t:"Viagem concluída", d:"seg 03:00"}
+  ];
+
+  function faseAtual(agora){
+    if (agora < SAIDA) return 0;
+    if (agora < CHEGADA) return 1;
+    if (agora < VOLTA) return 2;
+    if (agora < FIM) return 3;
+    return 4;
+  }
+  function falta(ms){
+    const m = Math.max(0, Math.round(ms/60000));
+    const d = Math.floor(m/1440), h = Math.floor((m%1440)/60);
+    if (d >= 2) return d + " dias";
+    if (d === 1) return "1 dia e " + h + "h";
+    if (h >= 1) return h + "h" + String(m%60).padStart(2,"0");
+    return m + " min";
+  }
+  function detalhe(i, agora){
+    if (i === 0) return "Saída em " + falta(SAIDA - agora) + ", quinta 05/11 às 20:00.";
+    if (i === 1) return "Chegada prevista em " + falta(CHEGADA - agora) + ", sexta às 08:00.";
+    if (i === 2) return "Volta prevista para domingo às 17:00.";
+    if (i === 3) return "Devolução do carro em " + falta(FIM - agora) + ", segunda às 03:00.";
+    return "Carro devolvido em Curitiba.";
+  }
+  function renderFase(){
+    const agora = Date.now(), i = faseAtual(agora);
+    document.getElementById("fases").innerHTML = FASES.map((f,k) =>
+      `<li${k===i?' aria-current="step"':''}${k<i?' class="feita"':''}><b>${f.n}</b><small>${f.d}</small></li>`).join("");
+    document.getElementById("fase-nome").textContent = FASES[i].t;
+    document.getElementById("fase-detalhe").textContent = detalhe(i, agora);
+  }
+  renderFase(); setInterval(renderFase, 30000);
+
+  const el = document.getElementById("map");
+  const reset = document.getElementById("map-reset");
+  if (!window.L){
+    el.innerHTML = '<p class="map-erro">Não foi possível carregar o mapa. Recarregue a página.</p>';
+    reset.hidden = true;
+    return;
+  }
+  // No celular, um dedo rola a página e dois dedos mexem no mapa.
+  const toque = window.matchMedia("(pointer:coarse)").matches;
+  const map = L.map(el, {zoomControl:false, scrollWheelZoom:false, dragging:!toque, zoomSnap:.25});
+  L.control.zoom({position:"bottomright"}).addTo(map);
+  // Mapa escuro da Esri: gratuito e sem chave. O da CARTO passou a exigir chave de API.
+  const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/";
+  L.tileLayer(ESRI + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom:18, maxNativeZoom:16, attribution:"Mapa: Esri, HERE, Garmin, &copy; OpenStreetMap"
+  }).addTo(map);
+  L.tileLayer(ESRI + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {maxZoom:18, maxNativeZoom:16}).addTo(map);
+  L.polyline(ROTA, {color:"#FF4A52", weight:10, opacity:.22, interactive:false}).addTo(map);
+  const linha = L.polyline(ROTA, {color:"#FF4A52", weight:3, interactive:false}).addTo(map);
+  const ponto = (ll, nome, lado) => L.circleMarker(ll, {radius:7, color:"#fff", weight:2, fillColor:"#FF4A52", fillOpacity:1, interactive:false})
+    .addTo(map).bindTooltip(nome, {permanent:true, direction:lado, offset:[0, lado==="top"?-10:10], className:"map-tip"});
+  ponto(ROTA[0], "Curitiba", "bottom");
+  ponto(ROTA[ROTA.length-1], "Interlagos", "top");
+
+  // A folga de cima deixa espaço para o quadro "Agora"; as laterais, para os rótulos não cortarem.
+  const enquadrar = () => map.fitBounds(linha.getBounds(), {paddingTopLeft:[56,128], paddingBottomRight:[56,56]});
+  enquadrar();
+  reset.addEventListener("click", enquadrar);
+  window.addEventListener("resize", () => map.invalidateSize());
+})();
+</script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
