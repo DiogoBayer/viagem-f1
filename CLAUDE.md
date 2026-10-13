@@ -129,7 +129,8 @@ Seção "Onde estamos", a primeira da página. O código fica num `<script>` pr�
 
 - Botões embaixo do mapa: "Rota inteira" e um por dia. Clicar num dia (ali ou nas abas do Roteiro) troca os dois juntos. Quinta mostra a rota inteira; os outros dias mostram as paradas numeradas, ligadas por uma linha tracejada que só indica a ordem (não é o caminho pelas ruas).
 - A localização de cada parada fica no próprio `DIAS`, no campo `ll: [lat, lng]`. Parada com `semLocal: true` aparece na lista com a etiqueta "Sem local no mapa" e fica fora do mapa.
-- **Falta o Diogo informar o endereço de:** Casa do Vídeo Game, hotel, os dois almoços, Barbacoa (há mais de uma unidade em SP) e restaurante japonês. Com o endereço, basta trocar `semLocal:true` por `ll:[lat,lng]`.
+- Casa do Vídeo Game: R. Geórgia, 224, Brooklin (CEP 04559-010). O OpenStreetMap não tem o número da casa, então o ponto foi estimado a ~224 m do começo da rua; pode estar um ou dois quarteirões fora. Barbacoa: unidade do Itaim Bibi, R. Dr. Renato Paes de Barros, 65 (ponto exato do OpenStreetMap).
+- **Ainda sem lugar definido pelo grupo:** hotel, os dois almoços e o restaurante japonês. Com o endereço, basta trocar `semLocal:true` por `ll:[lat,lng]`. Para achar as coordenadas, usar o Nominatim (pelo WebFetch, porque o terminal do Diogo bloqueia).
 - O script do mapa expõe `mostrar(paradas, rotaInteira)` em `window.mapaViagem`.
 
 **Limites e pendências:**

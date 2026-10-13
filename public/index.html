@@ -472,7 +472,7 @@ img{max-width:100%}
   L.tileLayer(ESRI + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
     maxZoom:18, maxNativeZoom:16, attribution:"Mapa: Esri, HERE, Garmin, &copy; OpenStreetMap"
   }).addTo(map);
-  L.tileLayer(ESRI + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {maxZoom:18, maxNativeZoom:16}).addTo(map);
+  const rotulos = L.tileLayer(ESRI + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {maxZoom:18, maxNativeZoom:16}).addTo(map);
   L.polyline(ROTA, {color:"#FF4A52", weight:10, opacity:.22, interactive:false}).addTo(map);
   const linha = L.polyline(ROTA, {color:"#FF4A52", weight:3, interactive:false}).addTo(map);
   const geral = L.layerGroup().addTo(map);       // pontas da rota: Curitiba e Interlagos
@@ -483,7 +483,7 @@ img{max-width:100%}
   ponto(ROTA[ROTA.length-1], "Interlagos", "top");
 
   // A folga de cima deixa espaço para o quadro "Agora"; as laterais, para os rótulos não cortarem.
-  const enquadrar = () => map.fitBounds(linha.getBounds(), {paddingTopLeft:[56,128], paddingBottomRight:[56,56]});
+  const enquadrar = () => map.fitBounds(linha.getBounds(), {paddingTopLeft:[56,128], paddingBottomRight:[56,56], animate:false});
   enquadrar();
   // Mostra as paradas de um dia do roteiro: [{n, ll:[lat,lng], nome, h, f1}], numeradas e ligadas na ordem.
   // A linha tracejada só indica a sequência; não é o caminho pelas ruas.
@@ -495,8 +495,10 @@ img{max-width:100%}
     paradas.forEach(p => L.marker(p.ll, {icon: L.divIcon({className:"", html:`<div class="parada${p.f1?" f1":""}">${p.n}</div>`, iconSize:[26,26], iconAnchor:[13,13]})})
       .addTo(camadaDia).bindTooltip(p.h + " · " + p.nome, {direction:"top", offset:[0,-14], className:"map-tip"}));
     if (rotaInteira || !lls.length) enquadrar();
-    else if (lls.length === 1) map.setView(lls[0], 12);
-    else map.fitBounds(L.latLngBounds(lls), {paddingTopLeft:[56,128], paddingBottomRight:[56,56], maxZoom:14});
+    else if (lls.length === 1) map.setView(lls[0], 12, {animate:false});
+    else map.fitBounds(L.latLngBounds(lls), {paddingTopLeft:[56,128], paddingBottomRight:[56,56], maxZoom:14, animate:false});
+    // Recarrega os nomes do mapa: num salto grande de zoom, os nomes antigos ficavam ampliados e borrados.
+    rotulos.remove(); rotulos.addTo(map);
   }
   reset.addEventListener("click", () => mostrar([], true));
   window.addEventListener("resize", () => map.invalidateSize());
@@ -522,12 +524,12 @@ const DIAS = [
   ]},
   {id:"sex", d:"06", w:"Sexta", t:"Treino Livre 2", itens:[
     {h:"08:00", a:"Chegada em São Paulo"},
-    {h:"09:00", a:"Casa do Vídeo Game", semLocal:true},
+    {h:"09:00", a:"Casa do Vídeo Game", s:"R. Geórgia, 224, Brooklin", ll:[-23.6070,-46.6823]},   // posição aproximada na rua
     {h:"12:00", a:"Almoço", semLocal:true},
     {h:"14:00", a:"Check-in no hotel", semLocal:true},
     {h:"15:00", a:"Parque Ibirapuera", warn:"Só 1 hora até o treino em Interlagos", ll:[-23.5874,-46.6576]},
     {h:"16:00", a:"Treino Livre 2", s:"Autódromo de Interlagos", f1:"FP2", ok:"Ingresso comprado", ll:[-23.7014,-46.6975]},
-    {h:"19:00", a:"Barbacoa", semLocal:true}
+    {h:"19:00", a:"Barbacoa", s:"R. Dr. Renato Paes de Barros, 65, Itaim Bibi", ll:[-23.5792,-46.6750]}
   ]},
   {id:"sab", d:"07", w:"Sábado", t:"Qualificação", itens:[
     {h:"08:00", a:"Feira da Liberdade", ll:[-23.5551,-46.6355]},
