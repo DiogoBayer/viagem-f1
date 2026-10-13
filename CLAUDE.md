@@ -125,6 +125,13 @@ Seção "Onde estamos", a primeira da página. O código fica num `<script>` pr�
 - Sem sinal: o próprio SDK do Firestore guarda as gravações e envia quando a internet volta, desde que a página não seja recarregada. O site só mostra um aviso para quem está compartilhando.
 - Sem mudança nas regras do banco.
 
+**Feito (roteiro no mapa):**
+
+- Botões embaixo do mapa: "Rota inteira" e um por dia. Clicar num dia (ali ou nas abas do Roteiro) troca os dois juntos. Quinta mostra a rota inteira; os outros dias mostram as paradas numeradas, ligadas por uma linha tracejada que só indica a ordem (não é o caminho pelas ruas).
+- A localização de cada parada fica no próprio `DIAS`, no campo `ll: [lat, lng]`. Parada com `semLocal: true` aparece na lista com a etiqueta "Sem local no mapa" e fica fora do mapa.
+- **Falta o Diogo informar o endereço de:** Casa do Vídeo Game, hotel, os dois almoços, Barbacoa (há mais de uma unidade em SP) e restaurante japonês. Com o endereço, basta trocar `semLocal:true` por `ll:[lat,lng]`.
+- O script do mapa expõe `mostrar(paradas, rotaInteira)` em `window.mapaViagem`.
+
 **Limites e pendências:**
 
 - Limites já explicados ao Diogo: só funciona com o site aberto e a tela ligada, e, sem login, quem tem o link vê (e poderia gravar) a posição. Testar em casa grava o endereço de casa no banco; apagar depois.
@@ -151,5 +158,7 @@ O site depende do Firebase, então abrir o `index.html` direto no navegador não
 7. Mapa "Onde estamos", etapa 1: rota real e fases da viagem, sem posição ao vivo (`v2-mapa-rota`).
 8. Mapa, etapa 2: posição ao vivo compartilhada e trilha (`v3-mapa-ao-vivo`). Exige as regras novas no Firebase.
 9. Mapa, etapa 3: local, velocidade, km até o destino e clima (`v4-mapa-dados`).
+10. Seletor de pessoa removido, só o celular do Diogo compartilha (`v5-so-meu-celular`); segundos na contagem (`v6-contagem-segundos`).
+11. Roteiro no mapa: paradas de cada dia (`v7-roteiro-no-mapa`).
 
 Também existe um doc "Planejamento de Viagem" no Claude, do começo da conversa. Ele está desatualizado em relação ao site e não é usado.

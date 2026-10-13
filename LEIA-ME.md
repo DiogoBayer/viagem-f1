@@ -52,6 +52,8 @@ A seção "Onde estamos" mostra a rota e a fase da viagem. Para o grupo ver onde
 5. Sem internet na estrada, o site guarda as posições e envia quando o sinal volta. Não feche nem recarregue o site nesse meio-tempo.
 6. Para encerrar, toque em **Parar de compartilhar**. **Apagar posição e trilha** limpa tudo do banco.
 
+Os botões embaixo do mapa (**Rota inteira**, **Qui 05**, **Sex 06**...) mostram as paradas de cada dia do roteiro, numeradas na ordem. As abas do Roteiro fazem o mesmo. Paradas com a etiqueta "Sem local no mapa" ainda não têm endereço definido.
+
 Na primeira vez, é preciso colar de novo as regras (passo 2), porque a posição usa um lugar novo no banco.
 
 ## Se der problema

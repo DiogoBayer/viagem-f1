@@ -88,6 +88,13 @@ section{padding-block:40px 8px;scroll-margin-top:64px}
 .map-tip::before{display:none}
 .map-erro{margin:0;padding:48px 18px;color:#9AA3AD;text-align:center}
 .map-hud .vivo{color:#5FD08F;font-weight:600}
+.map-dias,.map-dias span{display:flex;flex-wrap:wrap;gap:6px}
+.map-dias{margin-top:12px}
+.mdia{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:3px;padding:7px 12px;font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:.85rem;cursor:pointer}
+.mdia[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.parada{box-sizing:border-box;width:26px;height:26px;border-radius:50%;background:#ECEFF2;color:#101316;border:2px solid #101316;display:grid;place-items:center;font:600 13px var(--mono)}
+.parada.f1{background:#FF4A52;color:#fff;border-color:#fff}
+.pnum{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--fg);color:var(--bg);font:600 .78rem var(--mono);margin-right:8px;vertical-align:1px}
 .carro{box-sizing:border-box;width:20px;height:20px;border-radius:50%;background:#8A96A3;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45)}
 .carro.vivo{background:#2FD27A;animation:pulso 1.6s ease-out infinite}
 @keyframes pulso{0%{box-shadow:0 0 0 0 rgba(47,210,122,.65)}100%{box-shadow:0 0 0 18px rgba(47,210,122,0)}}
@@ -267,6 +274,10 @@ img{max-width:100%}
         <span id="live-hud" hidden></span>
       </div>
     </div>
+    <div class="map-dias" role="group" aria-label="O que mostrar no mapa">
+      <button class="mdia" id="map-reset" type="button" aria-pressed="true">Rota inteira</button>
+      <span id="map-dias-lista"></span>
+    </div>
     <div class="specs live-dados" id="live-dados" hidden>
       <div><span class="label">Local</span><b id="ld-local">—</b></div>
       <div><span class="label">Velocidade</span><b id="ld-vel">—</b></div>
@@ -278,7 +289,6 @@ img{max-width:100%}
       <div class="live-acoes">
         <button class="btn sm" id="live-btn" type="button" disabled>Compartilhar posição</button>
         <button class="btn sm sec" id="live-centro" type="button" hidden>Ver o carro</button>
-        <button class="btn sm sec" id="map-reset" type="button">Ver rota inteira</button>
       </div>
       <p class="msg err" id="live-msg" role="alert"></p>
     </div>
@@ -465,18 +475,33 @@ img{max-width:100%}
   L.tileLayer(ESRI + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {maxZoom:18, maxNativeZoom:16}).addTo(map);
   L.polyline(ROTA, {color:"#FF4A52", weight:10, opacity:.22, interactive:false}).addTo(map);
   const linha = L.polyline(ROTA, {color:"#FF4A52", weight:3, interactive:false}).addTo(map);
+  const geral = L.layerGroup().addTo(map);       // pontas da rota: Curitiba e Interlagos
+  const camadaDia = L.layerGroup().addTo(map);   // paradas do dia escolhido no roteiro
   const ponto = (ll, nome, lado) => L.circleMarker(ll, {radius:7, color:"#fff", weight:2, fillColor:"#FF4A52", fillOpacity:1, interactive:false})
-    .addTo(map).bindTooltip(nome, {permanent:true, direction:lado, offset:[0, lado==="top"?-10:10], className:"map-tip"});
+    .addTo(geral).bindTooltip(nome, {permanent:true, direction:lado, offset:[0, lado==="top"?-10:10], className:"map-tip"});
   ponto(ROTA[0], "Curitiba", "bottom");
   ponto(ROTA[ROTA.length-1], "Interlagos", "top");
 
   // A folga de cima deixa espaço para o quadro "Agora"; as laterais, para os rótulos não cortarem.
   const enquadrar = () => map.fitBounds(linha.getBounds(), {paddingTopLeft:[56,128], paddingBottomRight:[56,56]});
   enquadrar();
-  reset.addEventListener("click", enquadrar);
+  // Mostra as paradas de um dia do roteiro: [{n, ll:[lat,lng], nome, h, f1}], numeradas e ligadas na ordem.
+  // A linha tracejada só indica a sequência; não é o caminho pelas ruas.
+  function mostrar(paradas, rotaInteira){
+    camadaDia.clearLayers();
+    if (rotaInteira) geral.addTo(map); else geral.remove();
+    const lls = paradas.map(p => p.ll);
+    if (lls.length > 1) L.polyline(lls, {color:"#ECEFF2", weight:2, opacity:.7, dashArray:"6 8", interactive:false}).addTo(camadaDia);
+    paradas.forEach(p => L.marker(p.ll, {icon: L.divIcon({className:"", html:`<div class="parada${p.f1?" f1":""}">${p.n}</div>`, iconSize:[26,26], iconAnchor:[13,13]})})
+      .addTo(camadaDia).bindTooltip(p.h + " · " + p.nome, {direction:"top", offset:[0,-14], className:"map-tip"}));
+    if (rotaInteira || !lls.length) enquadrar();
+    else if (lls.length === 1) map.setView(lls[0], 12);
+    else map.fitBounds(L.latLngBounds(lls), {paddingTopLeft:[56,128], paddingBottomRight:[56,56], maxZoom:14});
+  }
+  reset.addEventListener("click", () => mostrar([], true));
   window.addEventListener("resize", () => map.invalidateSize());
-  // Ponte para o script do Firebase desenhar o carro e a trilha neste mapa.
-  window.mapaViagem = {map, enquadrar, ROTA, fase: () => faseAtual(Date.now())};
+  // Ponte para o script do Firebase desenhar o carro, a trilha e as paradas neste mapa.
+  window.mapaViagem = {map, enquadrar, mostrar, ROTA, fase: () => faseAtual(Date.now())};
 })();
 </script>
 
@@ -489,6 +514,7 @@ import { firebaseConfig } from "./config.js";
 const PESSOAS = ["Diogo","Antonio","João Vitor","Augusto"];
 const CORES = {"Diogo":"#C8402A","Antonio":"#2F6FB3","João Vitor":"#2E8B57","Augusto":"#8A5CC2"};
 
+// ll = [lat, lng] do lugar, para aparecer no mapa. semLocal = lugar ainda sem endereço definido.
 const DIAS = [
   {id:"qui", d:"05", w:"Quinta", t:"Saída", itens:[
     {h:"20:00", a:"Retirada do HB20S", s:"Movida, Aeroporto de Curitiba (loja 24h)"},
@@ -496,26 +522,26 @@ const DIAS = [
   ]},
   {id:"sex", d:"06", w:"Sexta", t:"Treino Livre 2", itens:[
     {h:"08:00", a:"Chegada em São Paulo"},
-    {h:"09:00", a:"Casa do Vídeo Game"},
-    {h:"12:00", a:"Almoço"},
-    {h:"14:00", a:"Check-in no hotel"},
-    {h:"15:00", a:"Parque Ibirapuera", warn:"Só 1 hora até o treino em Interlagos"},
-    {h:"16:00", a:"Treino Livre 2", s:"Autódromo de Interlagos", f1:"FP2", ok:"Ingresso comprado"},
-    {h:"19:00", a:"Barbacoa"}
+    {h:"09:00", a:"Casa do Vídeo Game", semLocal:true},
+    {h:"12:00", a:"Almoço", semLocal:true},
+    {h:"14:00", a:"Check-in no hotel", semLocal:true},
+    {h:"15:00", a:"Parque Ibirapuera", warn:"Só 1 hora até o treino em Interlagos", ll:[-23.5874,-46.6576]},
+    {h:"16:00", a:"Treino Livre 2", s:"Autódromo de Interlagos", f1:"FP2", ok:"Ingresso comprado", ll:[-23.7014,-46.6975]},
+    {h:"19:00", a:"Barbacoa", semLocal:true}
   ]},
   {id:"sab", d:"07", w:"Sábado", t:"Qualificação", itens:[
-    {h:"08:00", a:"Feira da Liberdade"},
-    {h:"11:00", a:"Almoço"},
-    {h:"13:00", a:"Qualificação", s:"Autódromo de Interlagos", f1:"Quali", ok:"Ingresso comprado"},
-    {h:"19:00", a:"Restaurante japonês"}
+    {h:"08:00", a:"Feira da Liberdade", ll:[-23.5551,-46.6355]},
+    {h:"11:00", a:"Almoço", semLocal:true},
+    {h:"13:00", a:"Qualificação", s:"Autódromo de Interlagos", f1:"Quali", ok:"Ingresso comprado", ll:[-23.7014,-46.6975]},
+    {h:"19:00", a:"Restaurante japonês", semLocal:true}
   ]},
   {id:"dom", d:"08", w:"Domingo", t:"Corrida", itens:[
-    {h:"08:00", a:"Avenida Paulista"},
-    {h:"10:00", a:"Corrida de F1", s:"Ida para Interlagos. Largada oficial às 14:00", f1:"Corrida", ok:"Ingresso comprado"},
+    {h:"08:00", a:"Avenida Paulista", ll:[-23.5614,-46.6559]},
+    {h:"10:00", a:"Corrida de F1", s:"Ida para Interlagos. Largada oficial às 14:00", f1:"Corrida", ok:"Ingresso comprado", ll:[-23.7014,-46.6975]},
     {h:"—", a:"Volta para Curitiba", s:"Cerca de 405 km; dividir a direção"}
   ]},
   {id:"seg", d:"09", w:"Segunda", t:"Devolução", itens:[
-    {h:"03:00", a:"Devolução do carro", s:"Movida, Aeroporto de Curitiba"}
+    {h:"03:00", a:"Devolução do carro", s:"Movida, Aeroporto de Curitiba", ll:[-25.5332,-49.1758]}
   ]}
 ];
 
@@ -536,20 +562,55 @@ function renderTabs(){
     diaAtual = b.dataset.id;
     try { localStorage.setItem("interlagos-dia", diaAtual); } catch(e){}
     renderTabs(); renderTimeline();
+    mostrarNoMapa(diaAtual);
   }));
 }
+
+/* ----- roteiro no mapa ----- */
+let mapaDia = null;   // dia mostrado no mapa; null = rota inteira
+// Paradas do dia que têm lugar definido, numeradas na ordem do roteiro.
+function paradasDe(dia){
+  let n = 0;
+  return dia.itens.filter(i => i.ll).map(i => ({n: ++n, ll: i.ll, nome: i.a, h: i.h, f1: !!i.f1}));
+}
+function renderMapaDias(){
+  document.getElementById("map-dias-lista").innerHTML = DIAS.map(d =>
+    `<button class="mdia" type="button" data-id="${d.id}" aria-pressed="${d.id===mapaDia}">${d.w.slice(0,3)} ${d.d}</button>`).join("");
+  document.getElementById("map-reset").setAttribute("aria-pressed", String(mapaDia === null));
+}
+function mostrarNoMapa(id){
+  mapaDia = id;
+  seguir = false;
+  renderMapaDias();
+  const dia = DIAS.find(d => d.id === id);
+  // Quinta é a estrada: mostra a rota inteira, como no botão "Rota inteira".
+  const rota = !dia || dia.id === "qui";
+  if (window.mapaViagem) window.mapaViagem.mostrar(rota ? [] : paradasDe(dia), rota);
+}
+document.getElementById("map-dias-lista").addEventListener("click", ev => {
+  const b = ev.target.closest(".mdia");
+  if (!b) return;
+  diaAtual = b.dataset.id;
+  try { localStorage.setItem("interlagos-dia", diaAtual); } catch(e){}
+  renderTabs(); renderTimeline();
+  mostrarNoMapa(diaAtual);
+});
+renderMapaDias();
 function renderTimeline(){
   const dia = DIAS.find(d => d.id === diaAtual);
   const el = document.getElementById("timeline");
   el.setAttribute("aria-labelledby", "tab-"+dia.id);
+  let n = 0;
   el.innerHTML = dia.itens.map(i => {
+    const num = i.ll ? `<span class="pnum" title="Número no mapa">${++n}</span>` : "";
     const chips = [];
+    if (i.semLocal) chips.push(`<span class="chip plain">Sem local no mapa</span>`);
     if (i.f1) chips.push(`<span class="chip f1">F1 · ${esc(i.f1)}</span>`);
     if (i.ok) chips.push(`<span class="chip ok">${esc(i.ok)}</span>`);
     if (i.warn) chips.push(`<span class="chip warn">${esc(i.warn)}</span>`);
     return `<li class="${i.f1?"f1":""}">
       <span class="time">${esc(i.h)}</span>
-      <div class="what"><strong>${esc(i.a)}</strong>${i.s?`<small>${esc(i.s)}</small>`:""}${chips.length?`<div class="chips">${chips.join("")}</div>`:""}</div>
+      <div class="what"><strong>${num}${esc(i.a)}</strong>${i.s?`<small>${esc(i.s)}</small>`:""}${chips.length?`<div class="chips">${chips.join("")}</div>`:""}</div>
     </li>`;
   }).join("");
 }
@@ -1037,7 +1098,7 @@ liveCentro.addEventListener("click", () => {
   seguir = true;
   mv.map.setView([pos.lat, pos.lng], Math.max(mv.map.getZoom(), 12));
 });
-document.getElementById("map-reset").addEventListener("click", () => { seguir = false; });
+document.getElementById("map-reset").addEventListener("click", () => { seguir = false; mapaDia = null; renderMapaDias(); });
 if (mv) mv.map.on("dragstart", () => { seguir = false; });
 liveApagar.addEventListener("click", async () => {
   if (!apagarPendente){ apagarPendente = true; renderAoVivo(); return; }
