@@ -1,0 +1,55 @@
+# Interlagos 2026 no Firebase + Netlify
+
+O site fica hospedado no Netlify e os gastos ficam no Firestore, do Firebase. Tudo é gratuito e feito pelo navegador, sem instalar nada. Não há código de acesso: quem tem o link vê e lança gastos.
+
+## O que tem na pasta
+
+| Arquivo | Para que serve |
+| --- | --- |
+| `public/index.html` | O site (roteiro, carro, custos e acerto) |
+| `public/config.js` | A configuração do seu Firebase. Cole uma vez e não mexa mais |
+| `firestore.rules` | Regras do banco, para colar no console do Firebase |
+| `firebase.json` | Só é usado se um dia publicar pela ferramenta do Firebase. Pode ignorar |
+
+## Passo a passo
+
+### 1. Criar o banco
+1. Em <https://console.firebase.google.com>, abra o seu projeto e clique em **Firestore Database** no menu lateral.
+2. Se aparecer **Criar banco de dados**, clique. Escolha a região **southamerica-east1 (São Paulo)** e o modo **produção**.
+
+Não precisa criar coleção nem documento. O site cria tudo no primeiro gasto.
+
+### 2. Colar as regras
+1. Ainda no Firestore Database, abra a aba **Regras** (Rules).
+2. Abra `firestore.rules` no Bloco de Notas, **Ctrl+A**, **Ctrl+C**.
+3. No Firebase, clique no texto das regras, **Ctrl+A**, **Ctrl+V** e clique em **Publicar**.
+
+### 3. Colar a configuração no site
+1. No Firebase: engrenagem → **Configurações do projeto** → **Seus apps** → procure o bloco **Config** (`const firebaseConfig = { ... };`).
+2. Abra `public/config.js` no Bloco de Notas ou VS Code e substitua os seis `COLE_AQUI` pelos valores do seu bloco. Mantenha `export const firebaseConfig = {` no começo.
+3. Salve. Procure `COLE_AQUI` de novo: não pode sobrar nenhum.
+
+### 4. Publicar no Netlify
+1. Acesse <https://app.netlify.com/drop> e entre com uma conta gratuita (dá para usar a conta Google).
+2. Arraste a **pasta `public`** inteira para a área indicada.
+3. Abra o link que aparecer, desça até **Custos e divisão** e clique em **Lançar aluguel, pedágio e combustível**.
+
+Para trocar o nome do link: no painel do Netlify, abra o site → **Site configuration** → **Change site name**.
+
+## Para mudar algo depois
+Troque só o `public/index.html` (o `config.js` fica como está) e arraste a pasta `public` de novo no Netlify, na aba **Deploys** do site. Os gastos não são afetados, porque ficam no Firebase.
+
+## Marcar quem já pagou
+Em cada gasto com pagador definido aparece a linha "Já pagaram ...", com um botão por pessoa da divisão. Quem acertou sua parte toca no próprio nome. O botão fica verde e o acerto de contas lá embaixo já desconta. Tocar de novo desmarca. Trocar o pagador de um gasto apaga as marcações dele.
+
+## Se der problema
+
+| Sintoma | Causa provável |
+| --- | --- |
+| "Falta colar a configuração do Firebase" | O `config.js` não está na pasta `public` ou sobrou algum `COLE_AQUI` |
+| Página sem a parte de gastos | O `config.js` perdeu a palavra `export` |
+| "O banco recusou o acesso" | As regras do passo 2 não foram publicadas |
+| Fica em "Carregando gastos…" | O banco do passo 1 não foi criado |
+
+## Segurança
+Quem tem o link pode lançar, editar e apagar qualquer gasto. Passe o link só para o grupo. As regras impedem que alguém grave dados malformados ou use outras partes do banco.
