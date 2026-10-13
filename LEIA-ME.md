@@ -48,7 +48,9 @@ A seção "Onde estamos" mostra a rota e a fase da viagem. Para o grupo ver onde
 1. No celular que vai no carro, abra o site, escolha o nome em **Celular de** e toque em **Compartilhar posição**. Aceite o pedido de localização.
 2. Deixe o site aberto, com a tela ligada e o celular carregando. Se a tela apagar ou o site fechar, o envio para.
 3. Quem abrir o site vê o ponto verde e a trilha. **Ver o carro** aproxima e acompanha o ponto.
-4. Para encerrar, toque em **Parar de compartilhar**. **Apagar posição e trilha** limpa tudo do banco.
+4. Embaixo do mapa aparecem a cidade onde o carro está, a velocidade, quantos km faltam e o clima no local.
+5. Sem internet na estrada, o site guarda as posições e envia quando o sinal volta. Não feche nem recarregue o site nesse meio-tempo.
+6. Para encerrar, toque em **Parar de compartilhar**. **Apagar posição e trilha** limpa tudo do banco.
 
 Na primeira vez, é preciso colar de novo as regras (passo 2), porque a posição usa um lugar novo no banco.
 

@@ -116,9 +116,16 @@ Seção "Onde estamos", a primeira da página. O código fica num `<script>` pr�
 - A ponte entre os dois scripts é `window.mapaViagem` (`map`, `enquadrar`).
 - Só foi testado com Firestore e GPS simulados. Falta o teste real: regras publicadas, site no Netlify e um celular de verdade.
 
-**A fazer:**
+**Feito (etapa 3):**
 
-- Etapa 3: cidade atual (Nominatim), clima (Open-Meteo), km rodados na rota e fila de pontos para quando faltar sinal.
+- Quadro de dados embaixo do mapa, visível quando há posição: local, velocidade, km até o destino e clima.
+- Km: `projetar` acha o ponto mais próximo da rota e escala para os 405 km (`KM_ESTRADA`). O destino é Interlagos até a fase "Volta" e Curitiba depois. A mais de 5 km da estrada mostra "—".
+- Local: Nominatim (OpenStreetMap), consultado de novo só depois de 3 km e 60 s. Clima: Open-Meteo, a cada 20 km ou 15 min. Cada pessoa que abre o site faz as próprias consultas; nada disso vai para o banco.
+- Sem sinal: o próprio SDK do Firestore guarda as gravações e envia quando a internet volta, desde que a página não seja recarregada. O site só mostra um aviso para quem está compartilhando.
+- Sem mudança nas regras do banco.
+
+**Limites e pendências:**
+
 - Limites já explicados ao Diogo: só funciona com o site aberto e a tela ligada, e, sem login, quem tem o link vê (e poderia gravar) a posição. Testar em casa grava o endereço de casa no banco; apagar depois.
 
 ## Como publicar uma mudança
@@ -142,5 +149,6 @@ O site depende do Firebase, então abrir o `index.html` direto no navegador não
 6. Repositório Git com a versão sem mapa marcada como `v1-site-no-ar` (ponto de retorno).
 7. Mapa "Onde estamos", etapa 1: rota real e fases da viagem, sem posição ao vivo (`v2-mapa-rota`).
 8. Mapa, etapa 2: posição ao vivo compartilhada e trilha (`v3-mapa-ao-vivo`). Exige as regras novas no Firebase.
+9. Mapa, etapa 3: local, velocidade, km até o destino e clima (`v4-mapa-dados`).
 
 Também existe um doc "Planejamento de Viagem" no Claude, do começo da conversa. Ele está desatualizado em relação ao site e não é usado.
