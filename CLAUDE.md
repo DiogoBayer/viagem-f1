@@ -162,6 +162,6 @@ O site depende do Firebase, então abrir o `index.html` direto no navegador não
 9. Mapa, etapa 3: local, velocidade, km até o destino e clima (`v4-mapa-dados`).
 10. Seletor de pessoa removido, só o celular do Diogo compartilha (`v5-so-meu-celular`); segundos na contagem (`v6-contagem-segundos`).
 11. Roteiro no mapa: paradas de cada dia (`v7-roteiro-no-mapa`), Casa do Vídeo Game e Barbacoa (`v8-locais-sexta`).
-12. Ícone da tela inicial (`v9-icone`). Foi desenhado em HTML, fotografado com o Edge sem janela em 512x512 e reduzido para 180x180. O iPhone guarda o ícone no momento de adicionar à tela inicial; para trocar, é preciso remover o atalho e adicionar de novo.
+12. Ícone da tela inicial (`v9-icone`, desenhado; `v10-icone-foto`, trocado pela foto que o Diogo escolheu). O ícone atual é um recorte quadrado de `public/verstappen.jpg` (420x420 a partir de x=140, y=0), reduzido para 180x180 com System.Drawing no PowerShell. O iPhone guarda o ícone no momento de adicionar à tela inicial; para trocar, é preciso remover o atalho e adicionar de novo.
 
 Também existe um doc "Planejamento de Viagem" no Claude, do começo da conversa. Ele está desatualizado em relação ao site e não é usado.
