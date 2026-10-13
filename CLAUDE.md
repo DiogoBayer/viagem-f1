@@ -109,7 +109,8 @@ Seção "Onde estamos", a primeira da página. O código fica num `<script>` pr�
 
 **Feito (etapa 2), inspirado no RatoNet (github.com/Captando/RatoNet):**
 
-- Botão "Compartilhar posição": o celular escolhido envia a posição com `watchPosition`, no máximo a cada 10 s (parado, reenvia a cada 30 s), e pede Wake Lock para a tela não apagar.
+- Só o celular do Diogo compartilha (`QUEM = "Diogo"` no código, sem seletor de pessoa; decisão do Diogo, que descartou o rastreio de cada um). O botão aparece para todos, então outra pessoa que tocar nele envia a própria posição como se fosse a do Diogo.
+- Botão "Compartilhar posição": o celular envia a posição com `watchPosition`, no máximo a cada 10 s (parado, reenvia a cada 30 s), e pede Wake Lock para a tela não apagar.
 - Dados em `viagens/interlagos-2026/aovivo`: documento `posicao` (`lat`, `lng`, `precisao` em metros, `vel` em km/h ou -1, `por`, `em`) e documento `trilha` (`pontos`: lista de textos `"lat,lng"`, um a cada 500 m, até 4.000).
 - Todos veem o ponto verde, a trilha verde e a velocidade. Sem envio há mais de 90 s, vira "Última posição há X" e o ponto fica cinza.
 - "Ver o carro" centraliza e segue o ponto; arrastar o mapa ou "Ver rota inteira" para de seguir. "Apagar posição e trilha" limpa os dois documentos.

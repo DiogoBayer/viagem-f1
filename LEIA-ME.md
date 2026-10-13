@@ -45,7 +45,7 @@ Em cada gasto com pagador definido aparece a linha "Já pagaram ...", com um bot
 ## Mapa e posição ao vivo
 A seção "Onde estamos" mostra a rota e a fase da viagem. Para o grupo ver onde o carro está:
 
-1. No celular que vai no carro, abra o site, escolha o nome em **Celular de** e toque em **Compartilhar posição**. Aceite o pedido de localização.
+1. No celular do Diogo, abra o site e toque em **Compartilhar posição**. Aceite o pedido de localização. Só esse celular deve compartilhar.
 2. Deixe o site aberto, com a tela ligada e o celular carregando. Se a tela apagar ou o site fechar, o envio para.
 3. Quem abrir o site vê o ponto verde e a trilha. **Ver o carro** aproxima e acompanha o ponto.
 4. Embaixo do mapa aparecem a cidade onde o carro está, a velocidade, quantos km faltam e o clima no local.

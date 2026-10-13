@@ -93,7 +93,7 @@ section{padding-block:40px 8px;scroll-margin-top:64px}
 @keyframes pulso{0%{box-shadow:0 0 0 0 rgba(47,210,122,.65)}100%{box-shadow:0 0 0 18px rgba(47,210,122,0)}}
 @media (prefers-reduced-motion:reduce){.carro.vivo{animation:none}}
 .live-dados{margin-top:12px}
-.live-dados b{font-family:var(--body);font-size:1.1rem;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+.specs.live-dados b{font-family:var(--body);font-size:1.1rem;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
 .live{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px 18px;margin-top:12px;display:grid;gap:10px}
 .live-status{margin:0;font-weight:600}
 .live-status.vivo{color:var(--ok)}
@@ -275,8 +275,6 @@ img{max-width:100%}
     <div class="live">
       <p class="live-status" id="live-status" role="status">Carregando a posição…</p>
       <div class="live-acoes">
-        <label class="label" for="live-quem">Celular de</label>
-        <select class="payer" id="live-quem"></select>
         <button class="btn sm" id="live-btn" type="button" disabled>Compartilhar posição</button>
         <button class="btn sm sec" id="live-centro" type="button" hidden>Ver o carro</button>
         <button class="btn sm sec" id="map-reset" type="button">Ver rota inteira</button>
@@ -838,7 +836,7 @@ const trilhaRef = doc(fs, "viagens", "interlagos-2026", "aovivo", "trilha");
 const liveStatus = document.getElementById("live-status");
 const liveHud = document.getElementById("live-hud");
 const liveBtn = document.getElementById("live-btn");
-const liveQuem = document.getElementById("live-quem");
+const QUEM = "Diogo";        // a posição é sempre a do celular do Diogo
 const liveCentro = document.getElementById("live-centro");
 const liveApagar = document.getElementById("live-apagar");
 const liveMsg = document.getElementById("live-msg");
@@ -848,9 +846,6 @@ let marcador = null, trilhaLinha = null, seguir = false;
 let watchId = null, wake = null, ultimoFix = null, ultimoEnvio = 0, ultimoTrilha = null, batida = null;
 let apagarPendente = false;
 
-liveQuem.innerHTML = PESSOAS.map(p => `<option>${esc(p)}</option>`).join("");
-try { const q = localStorage.getItem("interlagos-quem"); if (PESSOAS.includes(q)) liveQuem.value = q; } catch(e){}
-liveQuem.addEventListener("change", () => { try { localStorage.setItem("interlagos-quem", liveQuem.value); } catch(e){} });
 
 function distM(a, b){
   const r = Math.PI/180, dLat = (b[0]-a[0])*r, dLng = (b[1]-a[1])*r;
@@ -942,7 +937,6 @@ function renderAoVivo(){
   liveBtn.disabled = !aoVivoOk;
   liveBtn.textContent = compartilhando ? "Parar de compartilhar" : "Compartilhar posição";
   liveBtn.classList.toggle("parar", compartilhando);
-  liveQuem.disabled = compartilhando;
   liveCentro.hidden = !pos || !mv;
   liveApagar.hidden = !pos && !trilha.length;
   liveApagar.textContent = apagarPendente ? "Confirmar: apagar posição e trilha" : "Apagar posição e trilha";
@@ -985,7 +979,7 @@ function enviar(){
   const agora = Date.now();
   ultimoEnvio = agora;
   const {lat, lng, precisao, vel} = ultimoFix;
-  setDoc(posRef, {lat, lng, precisao, vel, por: liveQuem.value, em: new Date(agora).toISOString()})
+  setDoc(posRef, {lat, lng, precisao, vel, por: QUEM, em: new Date(agora).toISOString()})
     .then(() => { liveMsg.textContent = ""; })
     .catch(e => { liveMsg.textContent = erroTexto(e); });
   const pt = [lat, lng];
