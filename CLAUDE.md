@@ -19,20 +19,21 @@ Site da viagem de Curitiba ao GP de São Paulo de Fórmula 1 (6 a 8/11/2026). Mo
 | --- | --- |
 | Viajantes (4) | Diogo, Antonio (pai do Diogo), João Vitor, Augusto |
 | GP de São Paulo | 6 a 8/11/2026, Interlagos. Largada oficial domingo às 14:00 (Brasília). Ingressos já comprados |
-| Carro | Hyundai HB20S, Movida do Aeroporto de Curitiba (loja 24h). R$ 569,37 o período |
-| Retirada / devolução | Qui 05/11 20:00 / Seg 09/11 03:00, na mesma loja |
-| Estrada (Qualp) | 810 km ida e volta, ~9h15 ao volante, pedágio R$ 58,90, combustível R$ 458,81 (12 km/l a R$ 6,80/l) |
-| Transporte total | R$ 1.087,08 (R$ 271,77 por pessoa) |
+| Carro | Unidas do Aeroporto de Curitiba. Modelo ainda não confirmado (antes era um HB20S da Movida). R$ 385,70 o período |
+| Retirada / devolução | Sex 06/11 00:00 (meia-noite de quinta para sexta) / Seg 09/11 00:00 com tolerância até 03:00, na mesma loja |
+| Hospedagem | R. Maestro Elias Lobo, 1020, Jardim Paulista (CEP 01433-000). Check-in a partir das 12:00, check-out até as 12:00 |
+| Estrada (Qualp) | 810 km ida e volta, ~9h15 ao volante, pedágio R$ 58,90, combustível R$ 458,81 (12 km/l a R$ 6,80/l, consumo estimado para o HB20S) |
+| Transporte total | R$ 903,41 (R$ 225,85 por pessoa) |
 
 ### Roteiro definido pelo grupo
 
 | Dia | Horário | Atividade |
 | --- | --- | --- |
-| Qui 05/11 | 20:00 | Retirada do carro e estrada Curitiba → SP |
-| Sex 06/11 | 08:00 | Chegada em SP |
+| Qui 05/11 | 00:00 | Retirada do carro (já é sexta 06/11) e estrada Curitiba → SP |
+| Sex 06/11 | 08:00 | Chegada em SP (previsão entre 07:00 e 08:00) |
 | | 09:00 | Casa do Vídeo Game |
 | | 12:00 | Almoço |
-| | 14:00 | Check-in no hotel |
+| | 14:00 | Check-in na hospedagem (liberado a partir das 12:00) |
 | | 15:00 | Parque Ibirapuera |
 | | 16:00 | Treino Livre 2 (Interlagos) |
 | | 19:00 | Barbacoa |
@@ -40,15 +41,18 @@ Site da viagem de Curitiba ao GP de São Paulo de Fórmula 1 (6 a 8/11/2026). Mo
 | | 11:00 | Almoço |
 | | 13:00 | Qualificação (Interlagos) |
 | | 19:00 | Restaurante japonês |
-| Dom 08/11 | 08:00 | Avenida Paulista |
+| Dom 08/11 | — | Check-out da hospedagem (até 12:00; antes de sair para a corrida) |
+| | 08:00 | Avenida Paulista |
 | | 10:00 | Ida para a corrida (largada às 14:00) |
 | | — | Volta para Curitiba |
-| Seg 09/11 | 03:00 | Devolução do carro |
+| Seg 09/11 | 00:00 | Devolução do carro (tolerância até 03:00) |
 
 ### Pontos em aberto
 
-- Valor dos ingressos e do hotel ainda não foram lançados no site.
-- Hotel ainda não definido no roteiro (só o horário de check-in).
+- Valor dos ingressos e da hospedagem ainda não foram lançados no site.
+- O gasto do aluguel já lançado no Firebase pode estar com o valor antigo (R$ 569,37, Movida). O Diogo precisa corrigir pelo botão "Editar" para R$ 385,70 (Unidas).
+- Modelo do carro não confirmado. O consumo de 12 km/l é do HB20S.
+- Volta: a corrida acaba por volta das 15:40 e sair de Interlagos em dia de GP leva 1 a 2 h; com ~5 h de estrada, a chegada fica perto da meia-noite. A tolerância até 03:00 é a folga.
 - Sexta: Ibirapuera às 15:00 e Treino Livre 2 às 16:00 é apertado (~15 km em dia de GP). Já foi avisado; o site mostra um alerta nesse item.
 - O início da volta foi **suposto** para domingo 08/11 às 17:00 (usado na fase do mapa). Confirmar o horário real com o grupo.
 - Quem dirige cada trecho ainda não foi decidido.
@@ -106,7 +110,7 @@ Seção "Onde estamos", a primeira da página. O código fica num `<script>` pr�
 **Feito (etapa 1):**
 
 - Rota real da estrada em 323 pontos (`ROTA`), do Aeroporto Afonso Pena até Interlagos, tirada do OSRM/OpenStreetMap. O traçado simplificado mede ~392 km; o OSRM dá 398,6 km e o Qualp, 405 km.
-- Fases só pelo relógio (`faseAtual`): Antes → Ida (05/11 20:00) → Em São Paulo (06/11 08:00) → Volta (08/11 17:00, suposto) → Fim (09/11 03:00).
+- Fases só pelo relógio (`faseAtual`): Antes → Ida (06/11 00:00) → Em São Paulo (06/11 08:00) → Volta (08/11 17:00, suposto) → Fim (09/11 03:00, fim da tolerância; a devolução é `DEVOLUCAO`, 09/11 00:00).
 - No celular, arrastar com um dedo fica desligado para não prender a rolagem da página; dois dedos aproximam.
 
 **Feito (etapa 2), inspirado no RatoNet (github.com/Captando/RatoNet):**
@@ -132,7 +136,8 @@ Seção "Onde estamos", a primeira da página. O código fica num `<script>` pr�
 - Botões embaixo do mapa: "Rota inteira" e um por dia. Clicar num dia (ali ou nas abas do Roteiro) troca os dois juntos. Quinta mostra a rota inteira; os outros dias mostram as paradas numeradas, ligadas por uma linha tracejada que só indica a ordem (não é o caminho pelas ruas).
 - A localização de cada parada fica no próprio `DIAS`, no campo `ll: [lat, lng]`. Parada com `semLocal: true` aparece na lista com a etiqueta "Sem local no mapa" e fica fora do mapa.
 - Casa do Vídeo Game: R. Geórgia, 224, Brooklin (CEP 04559-010). O OpenStreetMap não tem o número da casa, então o ponto foi estimado a ~224 m do começo da rua; pode estar um ou dois quarteirões fora. Barbacoa: unidade do Itaim Bibi, R. Dr. Renato Paes de Barros, 65 (ponto exato do OpenStreetMap).
-- **Ainda sem lugar definido pelo grupo:** hotel, os dois almoços e o restaurante japonês. Com o endereço, basta trocar `semLocal:true` por `ll:[lat,lng]`. Para achar as coordenadas, usar o Nominatim (pelo WebFetch, porque o terminal do Diogo bloqueia).
+- Hospedagem: R. Maestro Elias Lobo, 1020. A rua tem um CEP só e o OpenStreetMap não tem o número; o ponto foi estimado a ~1 km do começo da rua (ponta perto da Rua Augusta), quase no fim, perto da Rua Colômbia.
+- **Ainda sem lugar definido pelo grupo:** os dois almoços e o restaurante japonês. Com o endereço, basta trocar `semLocal:true` por `ll:[lat,lng]`. Para achar as coordenadas, usar o Nominatim (pelo WebFetch, porque o terminal do Diogo bloqueia).
 - O script do mapa expõe `mostrar(paradas, rotaInteira)` em `window.mapaViagem`.
 
 **Limites e pendências:**
@@ -165,5 +170,6 @@ O site depende do Firebase, então abrir o `index.html` direto no navegador não
 11. Roteiro no mapa: paradas de cada dia (`v7-roteiro-no-mapa`), Casa do Vídeo Game e Barbacoa (`v8-locais-sexta`).
 12. Ícone da tela inicial (`v9-icone`, desenhado; `v10-icone-foto`, trocado pela foto que o Diogo escolheu). O ícone atual é um recorte quadrado de `public/verstappen.jpg` (420x420 a partir de x=140, y=0), reduzido para 180x180 com System.Drawing no PowerShell. O iPhone guarda o ícone no momento de adicionar à tela inicial; para trocar, é preciso remover o atalho e adicionar de novo.
 13. Edição de gastos (`v11-editar-gasto`).
+14. Carro da Unidas por R$ 385,70, retirada à 00:00 de 06/11 e devolução à 00:00 de 09/11, hospedagem na R. Maestro Elias Lobo, 1020 (`v12-unidas-hospedagem`).
 
 Também existe um doc "Planejamento de Viagem" no Claude, do começo da conversa. Ele está desatualizado em relação ao site e não é usado.
